@@ -1,7 +1,9 @@
 
 # ISU-Challenge: Benchmarking Vision-Language Models for In-Car Scene Understanding
 
-The **ISU-Challenge** is the 1st ICSE 2027 competition on testing and improving vision-language-model (VLM) systems for in-car scene understanding (ISU).
+[![ISU-Test Paper](https://img.shields.io/badge/ISU--Test_Paper-arXiv-b31b1b)](https://arxiv.org/abs/2607.02300) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-dataset-yellow)](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset)
+
+The **ISU-Challenge** is the first competition focused on testing and improving vision-language model (VLM) systems for in-car scene understanding (ISU), held at ICSE 2027.
 
 In-cabin monitoring systems are increasingly important for detecting safety-relevant events such as driver distraction, while also supporting comfort and personalization features. VLMs offer a flexible way to interpret camera images from a vehicle interior, but they can still produce incorrect, incomplete, or overconfident descriptions. These failures are particularly important when a system is expected to answer questions about seat occupancy, seat-belt status, passengers, objects, or driver behavior.
 
@@ -23,7 +25,7 @@ relationship between the RGB image, segmentation map, and Canny image is easy to
 ### 🧪 Track A: Test Generation
 Track A is for participants who develop automated test generators. The goal is to generate realistic, diverse, and challenging in-car scenes that expose failures in VLM-based ISU systems while preserving the semantic and geometric ground truth of the source scene.
 
-Participants will receive synthetic base scenes together with ground-truth annotations and auxiliary channels, such as depth maps and semantic segmentation maps. Test generators may diversify the visual appearance of the scenes, including:
+Participants use synthetic base scenes together with ground-truth annotations and auxiliary channels, such as depth maps and semantic segmentation maps. Test generators may diversify the visual appearance of the scenes, including:
 
 - textures and materials;
 - illumination and environmental conditions;
@@ -38,15 +40,19 @@ Transformations that modify the semantic or geometric structure of the scene are
 
 **Outputs**: A generated in-car scene dataset, together with the code required to generate the scenes and, where applicable, the corresponding ground-truth annotations.
 
+Track A code and evaluation resources are available in [`track_a/`](track_a/), including the [participant starter notebook](track_a/participant_starter.ipynb), [challenge evaluator notebook](track_a/track_a_challenge_evaluator.ipynb), [metrics implementation](track_a/track_a_metrics.py), and [image metrics utilities](track_a/image_metrics_utils.py).
+
 ### 👁️ Track B: Perception Robustness
 
 Track B is for participants who build robust ISU systems. The goal is to answer safety-relevant questions about synthetic and real in-car scenes, including questions about occupants, seat belts, objects, and driver or passenger behavior.
 
-Systems should process visual in-car scenes and return predictions in the prescribed JSON format. A starter collection of real in-car images will be provided for training and validation, and the final evaluation will use a withheld test set containing both synthetic and real scenes.
+Systems should process visual in-car scenes and return predictions in the prescribed JSON format. The Track B evaluator uses `Qwen/Qwen2.5-VL-3B-Instruct` as its reference model. A starter collection of real in-car images is provided for training and validation, and the final evaluation uses a withheld test set containing both synthetic and real scenes.
 
 **Inputs:** Varied synthetic and real in-car scenes together with the competition questions.
 
 **Outputs:** A model, model parameters, reproducible inference code, and JSON-formatted visual question-answering predictions.
+
+Track B code and evaluation resources are available in [`track_b/`](track_b/), including the [evaluator notebook](track_b/track_b_evaluator.ipynb) and [Python evaluator](track_b/track_b_evaluator.py).
 
 ### 🧩 Features
 
@@ -59,7 +65,6 @@ The feature schema is summarized below. Boolean features use `YES` or `NO` unles
 | Category | Feature | Example value | Description |
 | --- | --- | --- | --- |
 | Driver behaviour | `driver_phone` | `NO` | Whether the driver is using a phone. |
-| Passenger occupancy | `phone_codriver_seat` | `NO` | Whether a phone is present on the codriver seat. |
 | Passenger occupancy | `passenger_front_seat_right` | `NO` | Whether the front-right passenger seat is occupied. |
 | Passenger occupancy | `passenger_back_seat_left` | `NO` | Whether the rear-left passenger seat is occupied. |
 | Passenger occupancy | `passenger_back_seat_right` | `YES` | Whether the rear-right passenger seat is occupied. |
@@ -67,6 +72,7 @@ The feature schema is summarized below. Boolean features use `YES` or `NO` unles
 | Seat-belt usage | `front_right_safety_belt` | `NO` | Safety-belt status for the front-right seat. |
 | Seat-belt usage | `rear_left_safety_belt` | `NO` | Safety-belt status for the rear-left seat. |
 | Seat-belt usage | `rear_right_safety_belt` | `NO` | Safety-belt status for the rear-right seat. |
+| Objects | `phone_codriver_seat` | `NO` | Whether a phone is present on the codriver seat. |
 | Objects | `suitcase` | `YES` | Whether a suitcase is present. |
 | Objects | `suitcase_location` | `REAR_SEAT` | Location of the suitcase. |
 | Objects | `colabottle_codriver_seat` | `NO` | Whether a cola bottle is present on the codriver seat. |
@@ -79,7 +85,7 @@ The feature schema is summarized below. Boolean features use `YES` or `NO` unles
 
 The following synthetic scene demonstrates how the feature labels apply to an image. It shows a male driver wearing a white shirt and safety belt, two rear passengers, and several objects on the front-right seat.
 
-![Example scene with feature labels](readme_assets/sample_0001_sim.png)
+<img src="readme_assets/sample_0001_sim.png" alt="Example scene with feature labels" width="600">
 
 | Feature | Label | Feature | Label |
 | --- | --- | --- | --- |
@@ -99,7 +105,7 @@ The following synthetic scene demonstrates how the feature labels apply to an im
 
 ## 🧰 Starter Kit
 
-This repository provides the starter kit for the ISU-Challenge. It is intended to help participants understand the data format, run the evaluation pipeline, and develop a first baseline for either track.
+This repository provides the starter kit for the ISU-Challenge. It provides the data format, code to run the evaluation pipeline, and develop a first baseline for either track.
 
 The starter kit includes:
 
@@ -120,19 +126,19 @@ Both tracks use executable, automated evaluation pipelines.
 
 ### 🧪 Track A Metrics
 
-- **Failure rate:** The number of scenes that expose a failure divided by the number of executed scenes, based on feature matching. The public system under test is Qwen-3B-Instruct. A separate industrial system will be used for the final evaluation.
+- **Failure rate:** The number of scenes that expose a failure divided by the number of executed scenes, based on feature matching. The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
 - **Realism:** Will be disclosed after evaluation.
-- **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP and is private; this captures changes such as clothing colour and style.
-- **Efficiency (public):** Generation time. Will be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
+- **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
+- **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
 
 Track A results are ranked using Pareto non-dominance sorting across the competition objectives. In case of a tie, a weighted linear combination is used.
 
 ### 👁️ Track B Metrics
 
-- **Accuracy (public):** Performance of visual question answering predictions.
-- **Feature diversity (public):** Diversity of the features represented in the evaluated scenes.
-- **Latency (public):** Time required to process a scene and produce its answer, measured on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
-- **Extended evaluation (private):** Submitted systems are evaluated on an extended real and synthetic dataset.
+- **Accuracy:** Performance of visual question answering predictions.
+- **Feature diversity:** Diversity of the features represented in the evaluated scenes.
+- **Latency:** Time required to process a scene and produce its answer, measured on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
+- **Extended evaluation:** Submitted systems are evaluated on an extended real and synthetic dataset.
 
 Track B participants train and evaluate with synthetic image data and a set of 60 real images collected by the organizers. Participants are also invited to collect additional real data. The final evaluation uses withheld real and synthetic scenes.
 
@@ -140,23 +146,23 @@ Participants can use [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) to 
 
 ### 🔍 Evaluation Models and Data
 
-The public baseline for Track A is MoonDream:2B, the final evaluation includes an industrial system to assess generalizability.
+The baseline for Track A is `Qwen/Qwen2.5-VL-3B-Instruct`, and the final evaluation includes an industrial system to assess generalizability.
 
-The organizers provide 1,000 synthetically generated images and 60 real in-car images collected by the organizers. These data are released under the MIT license. Participants may also collect real data for the features defined by the competition.
+The organizers provide 1,000 synthetically generated images and 50 real in-car images collected by the organizers. These data are released under the MIT license. Participants can also collect real data for the features defined by the competition.
 
-The exact output schemas, executable evaluation commands, and metric implementations will be included in the starter kit.
+The exact output schemas, executable evaluation commands, and metric implementations are available in the starter kit.
 
 ## 🤝 Participation
 
 The competition is open to participants from software engineering, computer vision, machine learning, and related communities. Teams may participate in one or both tracks.
 
-To register, send the team or participant name, affiliation, and address to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration**. Registration details and deadlines will be announced with the competition launch. And ideally with a Team name in case you participate as a group.
+To register, send the team or participant name, affiliation, and address to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. Registration details and deadlines will be announced with the competition launch. Provide ideally a Team name in case you participate as a group.
 
 The competition is organized in connection with A* conference ICSE 2027. The top-ranked teams may be invited to submit solution papers to the ICSE 2027 Competition Track proceedings. Novel approaches may also be invited based on their methodological contribution, even if they do not achieve the highest leaderboard position.
 
 ## 📦 Submission Format
 
-Submissions will be made through the competition platform and will be evaluated on a private test set.
+Submissions are made through the competition platform are to be evaluated on a withheld test set.
 
 - **Track A:** Generated image archive and reproducible generation code.
 - **Track B:** Model files, parameters, inference or training code, and predictions in the required JSON format.
@@ -170,7 +176,6 @@ The expected timeline is synchronized with ICSE 2027:
 | Date | Event |
 | --- | --- |
 | September 2026 | Competition launch and starter-kit release |
-| Early November 2026 | Final competition submission deadline and winner verification |
 | 4 December 2026 | Solution papers and organizer reports due |
 | 16 December 2026 | Reviewer response for solution papers and organizer reports |
 | 6 January 2027 | Revisions due for solution papers |
@@ -180,7 +185,7 @@ The expected timeline is synchronized with ICSE 2027:
 
 ## 🏆 Prizes
 
-Prizes are provide for each tracks winner include token packages after the competition. In addition the sponsorship is supporting participant token costs for VLM and LLM use during the competition. 
+Prizes will be awarded to the first three winners in each track, with token packages worth up to $1,000 per track. In addition, the best accompanying papers will be published in the ICSE proceedings, and their authors will be invited to present their result at the conference in Dublin.
 
 ## 📝 Paper Selection
 
@@ -218,7 +223,7 @@ No. Moving, adding, removing, or reshaping semantically annotated objects or peo
 
 ### How will realism be assessed?
 
-Realism is assessed using the published metrics from the challenge and additional private image metrics. The private metrics are used to reduce overfitting to a fixed metric set. Generated scenes must also pass semantic-validity checks, including preservation of the relevant objects, people, and spatial information.
+Realism is assessed using the published metrics from the challenge and additional image metrics. Generated scenes must also pass semantic-validity checks, including preservation of the relevant objects, people, and spatial information.
 
 ### Can I use LLMs for image generation?
 
@@ -280,7 +285,7 @@ The ISU-Challenge builds on [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Te
 
 ## ⚖️ License
 
-See the repository files and the competition guidelines for the applicable licenses and data-use conditions.
+This repository is licensed under the [MIT License](LICENSE). 
 
 ## ✉️ Contact
 
