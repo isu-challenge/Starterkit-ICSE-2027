@@ -7,6 +7,17 @@ In-cabin monitoring systems are increasingly important for detecting safety-rele
 
 Real-world in-cabin edge cases are expensive and difficult to collect at scale. The ISU-Challenge addresses this problem with a dual-track competition combining realistic scene generation, automated evaluation, and software-testing techniques.
 
+### Example Data Channels
+
+The starter kit includes synthetic scenes with auxiliary channels for Track A, as well as real
+images for Track B. The examples below use the same synthetic scene where possible so that the
+relationship between the RGB image, segmentation map, and Canny image is easy to see.
+
+| Synthetic RGB image | Instance segmentation map | Canny edge map | Real in-car image |
+| --- | --- | --- | --- |
+| ![Synthetic RGB in-car scene](readme_assets/sample_0001_sim.png) | ![Instance segmentation map](readme_assets/sample_0001_instance_seg.png) | ![Canny edge map](readme_assets/sample_0001_canny.png) | ![Real in-car scene](readme_assets/20251207_110606.jpg) |
+| Source scene used by Track A transformations. | False-color mask; see the [instance-segmentation legend](readme_assets/instance_seg_legend.json). | Edge information extracted from the synthetic scene. | Example real image provided for Track B development. |
+
 ## 🏁 Competition Tracks
 
 ### 🧪 Track A: Test Generation
@@ -80,16 +91,6 @@ The starter kit includes:
 - baseline Track B inference scripts using open-weight VLMs.
 
 The starter kit is available on Kaggle and on the competition website.
-
-## 🔄 Example ISU Workflow
-
-The competition follows the workflow below:
-
-1. A scene is defined using controllable semantic features and ground-truth labels.
-2. Track A participants generate a visually diverse version of the scene while preserving its labels and geometry.
-3. The scene is submitted to a VLM-based ISU system together with a visual question.
-4. The system response is compared with the ground truth.
-5. Evaluation aggregates: semantic validity, visual realism, failure-inducing capability, and computational cost according to the selected track (data generation vs. inference).
 
 ## 📊 Evaluation
 

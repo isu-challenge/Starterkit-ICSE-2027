@@ -1,0 +1,154 @@
+{
+  "0": {
+    "name": "background",
+    "color_rgb": [
+      1,
+      1,
+      1
+    ]
+  },
+  "1": {
+    "name": "driver",
+    "color_rgb": [
+      220,
+      30,
+      60
+    ]
+  },
+  "2": {
+    "name": "passenger_codriver",
+    "color_rgb": [
+      30,
+      100,
+      200
+    ]
+  },
+  "3": {
+    "name": "passenger_rear_left",
+    "color_rgb": [
+      210,
+      160,
+      0
+    ]
+  },
+  "4": {
+    "name": "passenger_rear_right",
+    "color_rgb": [
+      30,
+      150,
+      80
+    ]
+  },
+  "5": {
+    "name": "driver_seatbelt",
+    "color_rgb": [
+      220,
+      100,
+      0
+    ]
+  },
+  "6": {
+    "name": "codriver_seatbelt",
+    "color_rgb": [
+      130,
+      50,
+      160
+    ]
+  },
+  "7": {
+    "name": "rear_left_seatbelt",
+    "color_rgb": [
+      140,
+      80,
+      255
+    ]
+  },
+  "8": {
+    "name": "rear_right_seatbelt",
+    "color_rgb": [
+      50,
+      130,
+      180
+    ]
+  },
+  "9": {
+    "name": "phone_codriver",
+    "color_rgb": [
+      160,
+      30,
+      80
+    ]
+  },
+  "10": {
+    "name": "cola_bottle",
+    "color_rgb": [
+      200,
+      100,
+      0
+    ]
+  },
+  "11": {
+    "name": "cola_can",
+    "color_rgb": [
+      0,
+      160,
+      100
+    ]
+  },
+  "12": {
+    "name": "suitcase",
+    "color_rgb": [
+      0,
+      140,
+      200
+    ]
+  },
+  "13": {
+    "name": "baby_seat",
+    "color_rgb": [
+      200,
+      0,
+      90
+    ]
+  },
+  "14": {
+    "name": "baby",
+    "color_rgb": [
+      0,
+      100,
+      60
+    ]
+  },
+  "15": {
+    "name": "driver_phone",
+    "color_rgb": [
+      200,
+      200,
+      0
+    ]
+  },
+  "16": {
+    "name": "seat",
+    "color_rgb": [
+      38,
+      15,
+      3
+    ]
+  },
+  "17": {
+    "name": "car_interior",
+    "color_rgb": [
+      28,
+      15,
+      150
+    ]
+  },
+  "18": {
+    "name": "exterior",
+    "color_rgb": [
+      8,
+      63,
+      122
+    ]
+  }
+}
