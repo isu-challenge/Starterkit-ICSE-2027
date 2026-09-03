@@ -1,7 +1,10 @@
 
-# ISU-Challenge: Benchmarking Vision-Language Models for In-Car Scene Understanding
+<h1 align="center">ISU-Challenge: Benchmarking Vision-Language Models for In-Car Scene Understanding</h1>
 
-[![ISU-Test Paper](https://img.shields.io/badge/ISU--Test_Paper-arXiv-b31b1b)](https://arxiv.org/abs/2607.02300) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-dataset-yellow)](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset)
+<p align="center">
+	<a href="https://arxiv.org/abs/2607.02300"><img src="https://img.shields.io/badge/ISU--Test_Paper-arXiv-b31b1b" alt="ISU-Test Paper"></a>
+	<a href="https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset"><img src="https://img.shields.io/badge/Hugging%20Face-dataset-yellow" alt="Hugging Face dataset"></a>
+</p>
 
 The **ISU-Challenge** is the first competition focused on testing and improving vision-language model (VLM) systems for in-car scene understanding (ISU), held at ICSE 2027.
 
@@ -140,7 +143,7 @@ Track A results are ranked using Pareto non-dominance sorting across the competi
 - **Latency:** Time required to process a scene and produce its answer, measured on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
 - **Extended evaluation:** Submitted systems are evaluated on an extended real and synthetic dataset.
 
-Track B participants train and evaluate with synthetic image data and a set of 60 real images collected by the organizers. Participants are also invited to collect additional real data. The final evaluation uses withheld real and synthetic scenes.
+Track B participants train and evaluate with synthetic image data and a set of 50 real images collected by the organizers. Participants are also invited to collect additional real data. The final evaluation uses withheld real and synthetic scenes.
 
 Participants can use [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) to generate additional controllable synthetic in-car scenes for Track B development and training. Alternatively, they can use the synthetic and real images provided in the starter kit. Generated or provided scenes should use the competition feature definitions and labels so that predictions can be evaluated with the Track B pipeline.
 
@@ -233,7 +236,7 @@ Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translati
 
 ### Where can I get real data for training?
 
-The starter kit provides 60 real in-car images collected by the organizers, together with the relevant labels. The data are provided for training and validation and are released under the MIT license. Participants may also collect additional real data using the instructions and recording script provided with the challenge.
+The starter kit provides 50 real in-car images collected by the organizers, together with the relevant labels. The data are provided for training and validation and are released under the MIT license. Participants may also collect additional real data using the instructions and recording script provided with the challenge.
 
 ### What does the model need to predict?
 
