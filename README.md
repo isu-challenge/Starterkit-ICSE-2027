@@ -10,20 +10,22 @@ Real-world in-cabin edge cases are expensive and difficult to collect at scale. 
 ## 🏁 Competition Tracks
 
 ### 🧪 Track A: Test Generation
+Track A is for participants who develop automated test generators. The goal is to generate realistic, diverse, and challenging in-car scenes that expose failures in VLM-based ISU systems while preserving the semantic and geometric ground truth of the source scene.
 
-Track A is for participants who build automated test generators. The goal is to create realistic, diverse, and challenging in-car scenes that expose failures in VLM-based ISU systems while preserving the semantic content and spatial geometry of the source scene.
+Participants will receive synthetic base scenes together with ground-truth annotations and auxiliary channels, such as depth maps and semantic segmentation maps. Test generators may diversify the visual appearance of the scenes, including:
 
-Participants will work with provided synthetic scenes and auxiliary channels such as depth maps, semantic segmentation maps. These inputs can be used to diversify visual appearance through changes such as:
+textures and materials;
+illumination and environmental conditions;
+passenger appearance and clothing;
+other appearance-level variations that do not modify the underlying scene geometry or semantic structure.
 
-- textures and materials;
-- environmental conditions;
-- realistic passenger and object variations,
+For the generated scenes, the ground-truth annotations of the source scene must remain valid. In particular, appearance transformations must not add, remove, move, or reshape semantically annotated objects, alter their spatial relationships, or otherwise modify the scene structure represented by the ground-truth annotations. For example, a participant may change a person's clothing or appearance, but may not change the person's location, body geometry, or the presence of safety-critical objects such as seat belts.
 
-as long as the generated scenes remain semantically valid. For example, a transformation must not move a person, remove a seat belt, or change the position of an object in a way that invalidates the ground-truth labels. However, the humans appearance or the clothing can change.
+Transformations that modify the semantic or geometric structure of the scene are not permitted in Track A unless the corresponding ground-truth annotations are generated consistently and submitted with the transformed scene.
 
-**Inputs:** Synthetic base scenes with ground-truth labels and auxiliary channels.
+Inputs: Synthetic base scenes with ground-truth labels and auxiliary channels.
 
-**Outputs:** A realistic in-car scene dataset and the code required to generate it.
+Outputs: A generated in-car scene dataset, together with the code required to generate the scenes and, where applicable, the corresponding ground-truth annotations.
 
 ### 👁️ Track B: Perception Robustness
 
