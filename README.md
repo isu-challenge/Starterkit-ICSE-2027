@@ -43,30 +43,26 @@ The benchmark describes each scene through a set of observable, safety-relevant 
 
 The feature representation is intentionally structured so that every prediction can be compared directly with the ground truth. A scene may contain several simultaneous conditions, such as an occupied rear seat, an unfastened belt, and a suitcase in the rear. This supports both fine-grained failure analysis and diversity measurements across generated scenes.
 
-An example feature record is shown below:
+The feature schema is summarized below. Boolean features use `YES` or `NO` unless stated otherwise.
 
-{
-  "driver_phone": "NO",
-  "phone_codriver_seat": "NO",
-
-  "passenger_front_seat_right": "NO",
-  "passenger_back_seat_left": "NO",
-  "passenger_back_seat_right": "YES",
-
-  "front_left_safety_belt": "YES",
-  "front_right_safety_belt": "NO",
-  "rear_left_safety_belt": "NO",
-  "rear_right_safety_belt": "NO",
-
-  "suitcase": "YES",
-  "suitcase_location": "REAR_SEAT",
-  "colabottle_codriver_seat": "NO",
-  "colacan_codriver_seat": "NO",
-
-  "baby_seat": "YES",
-  "baby_seat_orientation": "FRONT_FACING",
-  "baby": "NO"
-}
+| Category | Feature | Example value | Description |
+| --- | --- | --- | --- |
+| Driver behaviour | `driver_phone` | `NO` | Whether the driver is using a phone. |
+| Passenger occupancy | `phone_codriver_seat` | `NO` | Whether a phone is present on the codriver seat. |
+| Passenger occupancy | `passenger_front_seat_right` | `NO` | Whether the front-right passenger seat is occupied. |
+| Passenger occupancy | `passenger_back_seat_left` | `NO` | Whether the rear-left passenger seat is occupied. |
+| Passenger occupancy | `passenger_back_seat_right` | `YES` | Whether the rear-right passenger seat is occupied. |
+| Seat-belt usage | `front_left_safety_belt` | `YES` | Safety-belt status for the front-left seat. |
+| Seat-belt usage | `front_right_safety_belt` | `NO` | Safety-belt status for the front-right seat. |
+| Seat-belt usage | `rear_left_safety_belt` | `NO` | Safety-belt status for the rear-left seat. |
+| Seat-belt usage | `rear_right_safety_belt` | `NO` | Safety-belt status for the rear-right seat. |
+| Objects | `suitcase` | `YES` | Whether a suitcase is present. |
+| Objects | `suitcase_location` | `REAR_SEAT` | Location of the suitcase. |
+| Objects | `colabottle_codriver_seat` | `NO` | Whether a cola bottle is present on the codriver seat. |
+| Objects | `colacan_codriver_seat` | `NO` | Whether a cola can is present on the codriver seat. |
+| Child safety | `baby_seat` | `YES` | Whether a baby seat is present. |
+| Child safety | `baby_seat_orientation` | `FRONT_FACING` | Orientation of the baby seat. |
+| Child safety | `baby` | `NO` | Whether a baby is present. |
 
 ## 🧰 Starter Kit
 
@@ -173,15 +169,29 @@ We will invite solution papers from the competition participants and accept at m
 
 ### What is a valid test input?
 
-A valid Track A input is a synthetic in-car scene from the starter kit together with its available auxiliary channels, such as depth, semantic segmentation, and edge information. Participants may use these inputs to generate a visually transformed scene.
+A valid Track A input is a synthetic in-car scene from the starter kit together with its available auxiliary channels, such as depth maps, semantic segmentation maps, and edge information. Participants may use these inputs to generate visually transformed scenes.
 
 ### What is the system output?
 
-The output is a generated in-car scene dataset and the reproducible code used to generate it. Each generated scene must remain aligned with the required source scene and its ground-truth labels.
+The output is a generated in-car scene dataset together with the reproducible code used to generate it. Each generated scene must preserve the semantic content and spatial geometry of its source scene such that the provided ground-truth labels remain valid after transformation.
+
+### What does it mean to preserve the ground-truth labels?
+
+Participants may modify the visual appearance of a scene, but must not modify the underlying semantic or geometric structure represented by the ground truth. In particular, transformations must not add, remove, move, or reshape semantically annotated objects or people, or change their spatial relationships.
+
+For example, participants may change a person's clothing or appearance, or modify the texture and material of an object, provided that its location and geometry remain unchanged.
 
 ### Am I allowed to generate new labels?
 
-Participants do not need to generate new labels for transformed scenes. The existing labels must remain valid after transformation.
+Participants do not need to generate new labels for transformed scenes. Track A is designed around ground-truth-preserving transformations; therefore, the existing labels must remain valid after transformation.
+
+### What happens if a transformation changes the segmentation?
+
+If a transformation changes the semantic or geometric structure of the scene such that the provided segmentation or other required ground-truth labels are no longer valid, the generated scene does not satisfy the Track A validity requirements.
+
+### Can I move, add, or remove objects or people?
+
+No. Moving, adding, removing, or reshaping semantically annotated objects or people is not permitted in Track A because these operations can invalidate the provided ground-truth labels.
 
 ### How will realism be assessed?
 
@@ -189,8 +199,7 @@ Realism is assessed using the published metrics from the challenge and additiona
 
 ### Can I use LLMs for image generation?
 
-Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translation systems, or other generative techniques, provided that the resulting scenes are realistic, reproducible, and semantically valid. Any required model or API dependencies must be declared in the submission, and  token or compute limits must be considered.
-
+Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translation systems, or other generative techniques, provided that the resulting scenes are realistic, reproducible, and semantically valid. Any required model or API dependencies must be declared in the submission, and applicable token or compute limits must be respected.
 
 ## 👁️ Track B
 
