@@ -9,7 +9,7 @@ Real-world in-cabin edge cases are expensive and difficult to collect at scale. 
 
 ### Example Data Channels
 
-The starter kit includes synthetic scenes with auxiliary channels for Track A generated with ISU-Test, as well as real
+The starter kit includes synthetic scenes with auxiliary channels for Track A generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test), as well as real
 images for Track B. The examples below use the same synthetic scene where possible so that the
 relationship between the RGB image, segmentation map, and Canny image is easy to see.
 
