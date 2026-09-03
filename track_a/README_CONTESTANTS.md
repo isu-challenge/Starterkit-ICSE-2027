@@ -51,8 +51,8 @@ Images with a different resolution are resized for evaluation, but changing reso
 
 Submissions are evaluated on three parts:
 
-- Realism: FID and KID against the supplied real-image reference set.
-- Semantic preservation: class-independent SAM agreement for simulated vs. generated and real/reference vs. generated images. Boundary F1 and symmetric region covering ignore class IDs and tolerate region splits and merges; matched IoU, ARI, and NMI remain available as diagnostics.
+- Realism: FID and KID against the supplied real-image reference set (can be less then number of generated images)
+- Semantic preservation: class-independent SAM agreement for matched simulated vs. generated images. Boundary F1 and symmetric region covering ignore class IDs and tolerate region splits and merges; matched IoU, ARI, and NMI remain available as diagnostics. Real/reference images are unpaired and are used for distribution-level realism metrics instead.
 - Image quality: generated vs. real/reference and simulated vs. real/reference are scored separately. The report also shows the generated improvement over the simulated baseline.
 - Content fidelity: SSIM, PSNR, and MSE against the simulated source image.
 
@@ -60,4 +60,6 @@ The full ICST 2024 metric set is reported: Inception Score (IS), FID, KID, SSIM,
 
 Lower values are better for FID, KID, and MSE. Higher values are better for the segmentation scores, SSIM, and PSNR.
 
-The organizer runs the evaluator. Contestants only need to provide their translated images in the required folder structure.
+The organizer runs the evaluator. Contestants only need to provide their translated images in the required folder structure and the code for the translation. 
+
+The translation and evaluation will be performed on a hidden dataset, in addition.

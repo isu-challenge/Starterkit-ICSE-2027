@@ -163,16 +163,19 @@ def evaluate_public_realism(folders):
 
 
 def evaluate_sam(folders, output_dir, segmenter):
-    """Class-agnostic SAM validation for matched simulated/generated scenes.
-
-    Real images are an unpaired reference distribution, so they are not used
-    for per-image segmentation comparison.
-    """
+    """Class-agnostic SAM segmentation distance: simulated-vs-generated and
+    real-vs-generated. Every metric is a continuous distance/agreement score
+    (boundary_f1, symmetric_region_covering, matched_iou, ARI, NMI) — there is
+    no pass/fail threshold here, only how close the two partitions are."""
     sim = evaluate_segmentation(
         folders["simulated"], folders["generated"], segmenter,
         Path(output_dir) / "simulated_vs_generated", "simulated", "generated"
     )
-    return {"simulated_vs_generated": sim}
+    real = evaluate_segmentation(
+        folders["reference"], folders["generated"], segmenter,
+        Path(output_dir) / "real_vs_generated", "real", "generated"
+    )
+    return {"simulated_vs_generated": sim, "real_vs_generated": real}
 
 
 def load_labels(folder):
