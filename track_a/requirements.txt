@@ -1,0 +1,14 @@
+numpy
+Pillow
+scipy
+scikit-image
+scikit-learn
+torch
+torchvision
+torchmetrics
+torch-fidelity
+transformers>=4.57,<5
+accelerate
+einops
+nbconvert
+ipykernel

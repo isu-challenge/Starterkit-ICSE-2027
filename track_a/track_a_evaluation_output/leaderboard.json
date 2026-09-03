@@ -1,0 +1,19 @@
+{
+  "rows": [
+    {
+      "contestant": "provided_data_baseline",
+      "failure": 0.42857142857142855,
+      "realism": 1.0,
+      "diversity": 0.4000000000000001,
+      "efficiency": null
+    }
+  ],
+  "pareto_fronts": [],
+  "tie_break_scores": {},
+  "tie_break_weights": {
+    "failure": 0.3,
+    "realism": 0.4,
+    "diversity": 0.3
+  },
+  "note": "Tie-break values are min-max normalized across rankable contestants."
+}

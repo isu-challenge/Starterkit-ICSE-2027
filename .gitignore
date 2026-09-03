@@ -1,2 +1,9 @@
 /data/**
 */venv/**
+*/data/*
+*/ipynb_checkpoints
+
+track_a_evaluation_output/*
+submissions/*
+
+**/__pycache__/**
