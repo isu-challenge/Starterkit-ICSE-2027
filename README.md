@@ -234,11 +234,15 @@ Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translati
 
 ## 👁️ Track B
 
+### What is an interior scene understanding system?
+
+An interior scene understanding system analyzes images from inside a vehicle and provides information, such as occupants, seat-belt status, driver behaviour, and objects in the cabin. In Track B, the system returns these predictions using the prescribed feature names and JSON format.
+
 ### Where can I get real data for training?
 
 The starter kit provides 50 real in-car images collected by the organizers, together with the relevant labels. The data are provided for training and validation and are released under the MIT license. Participants may also collect additional real data using the instructions and recording script provided with the challenge.
 
-### What does the model need to predict?
+### What does the interior scene understanding model need to predict?
 
 The model must predict the observable scene features represented in the label JSON files. These include driver phone use, passenger occupancy, safety-belt status, suitcase presence and location, beverage objects, baby-seat configuration, and related cabin features. The required feature names and allowed values are defined by the provided labels and evaluation prompt.
 
