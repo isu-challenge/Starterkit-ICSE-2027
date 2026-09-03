@@ -1,7 +1,8 @@
 /data/**
 */venv/**
 */data/*
-*/ipynb_checkpoints
+**/ipynb_checkpoints/*
+
 
 track_a_evaluation_output/*
 submissions/*

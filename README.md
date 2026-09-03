@@ -188,7 +188,7 @@ The expected timeline is synchronized with ICSE 2027:
 
 ## 🏆 Prizes
 
-Prizes will be awarded to the first three winners in each track, with token packages worth up to $1,000 per track. In addition, the best accompanying papers will be published in the ICSE proceedings, and their authors will be invited to present their result at the conference in Dublin.
+Prizes will be awarded to the first three winners in each track, with token packages worth up to $1,000 per track. In addition, the best accompanying papers will be published in the ICSE proceedings, and their authors will be invited to present their results at the conference in Dublin.
 
 ## 📝 Paper Selection
 
