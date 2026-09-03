@@ -9,14 +9,14 @@ Real-world in-cabin edge cases are expensive and difficult to collect at scale. 
 
 ### Example Data Channels
 
-The starter kit includes synthetic scenes with auxiliary channels for Track A, as well as real
+The starter kit includes synthetic scenes with auxiliary channels for Track A generated with ISU-Test, as well as real
 images for Track B. The examples below use the same synthetic scene where possible so that the
 relationship between the RGB image, segmentation map, and Canny image is easy to see.
 
 | Synthetic RGB image | Instance segmentation map | Canny edge map | Real in-car image |
 | --- | --- | --- | --- |
 | ![Synthetic RGB in-car scene](readme_assets/sample_0001_sim.png) | ![Instance segmentation map](readme_assets/sample_0001_instance_seg.png) | ![Canny edge map](readme_assets/sample_0001_canny.png) | ![Real in-car scene](readme_assets/20251207_110606.jpg) |
-| Source scene used by Track A transformations. | False-color mask; see the [instance-segmentation legend](readme_assets/instance_seg_legend.json). | Edge information extracted from the synthetic scene. | Example real image provided for Track B development. |
+| Source scene used by Track A. | False-color mask; see the [instance-segmentation legend](readme_assets/instance_seg_legend.json). | Edge information extracted from the synthetic scene. | Example real image provided for Track B. |
 
 ## 🏁 Competition Tracks
 
@@ -25,18 +25,18 @@ Track A is for participants who develop automated test generators. The goal is t
 
 Participants will receive synthetic base scenes together with ground-truth annotations and auxiliary channels, such as depth maps and semantic segmentation maps. Test generators may diversify the visual appearance of the scenes, including:
 
-textures and materials;
-illumination and environmental conditions;
-passenger appearance and clothing;
-other appearance-level variations that do not modify the underlying scene geometry or semantic structure.
+- textures and materials;
+- illumination and environmental conditions;
+- passenger appearance and clothing
+- other appearance-level variations that do not modify the underlying scene geometry, semantic structure and interior look and feel.
 
 For the generated scenes, the ground-truth annotations of the source scene must remain valid. In particular, appearance transformations must not add, remove, move, or reshape semantically annotated objects, alter their spatial relationships, or otherwise modify the scene structure represented by the ground-truth annotations. For example, a participant may change a person's clothing or appearance, but may not change the person's location, body geometry, or the presence of safety-critical objects such as seat belts.
 
 Transformations that modify the semantic or geometric structure of the scene are not permitted in Track A unless the corresponding ground-truth annotations are generated consistently and submitted with the transformed scene.
 
-Inputs: Synthetic base scenes with ground-truth labels and auxiliary channels.
+**Inputs**: Synthetic base scenes with ground-truth labels and auxiliary channels.
 
-Outputs: A generated in-car scene dataset, together with the code required to generate the scenes and, where applicable, the corresponding ground-truth annotations.
+**Outputs**: A generated in-car scene dataset, together with the code required to generate the scenes and, where applicable, the corresponding ground-truth annotations.
 
 ### 👁️ Track B: Perception Robustness
 
@@ -50,7 +50,7 @@ Systems should process visual in-car scenes and return predictions in the prescr
 
 ### 🧩 Features
 
-The benchmark describes each scene through a set of observable, safety-relevant features. These labels cover driver behaviour, passenger occupancy, seat-belt usage, and the presence and location of objects in the cabin. Together, they define the questions that Track B systems must answer and the semantic information that Track A generators must preserve when changing a scene's visual appearance.
+The benchmark describes each scene through a set of observable features. These labels cover driver behaviour, passenger occupancy, seat-belt usage, and the presence and location of objects in the cabin. Together, they define the questions that Track B systems must address and the semantic information that Track A generators must preserve when changing a scene's visual appearance.
 
 The feature representation is intentionally structured so that every prediction can be compared directly with the ground truth. A scene may contain several simultaneous conditions, such as an occupied rear seat, an unfastened belt, and a suitcase in the rear. This supports both fine-grained failure analysis and diversity measurements across generated scenes.
 
@@ -74,6 +74,28 @@ The feature schema is summarized below. Boolean features use `YES` or `NO` unles
 | Child safety | `baby_seat` | `YES` | Whether a baby seat is present. |
 | Child safety | `baby_seat_orientation` | `FRONT_FACING` | Orientation of the baby seat. |
 | Child safety | `baby` | `NO` | Whether a baby is present. |
+
+#### Example Feature Labels
+
+The following synthetic scene demonstrates how the feature labels apply to an image. It shows a male driver wearing a white shirt and safety belt, two rear passengers, and several objects on the front-right seat.
+
+![Example scene with feature labels](readme_assets/sample_0001_sim.png)
+
+| Feature | Label | Feature | Label |
+| --- | --- | --- | --- |
+| `driver_safety_belt` | `YES` | `driver_phone` | `NO` |
+| `passenger_front_seat_right` | `NO` | `passenger_codriver_tshirt_color` | `null` |
+| `passenger_codriver_emotion` | `null` | `codriver_safety_belt` | `NO` |
+| `passenger_back_seat_left` | `YES` | `passenger_rear_left_tshirt_color` | `BLACK` |
+| `passenger_rear_left_emotion` | `HAPPY` | `rear_left_safety_belt` | `YES` |
+| `passenger_back_seat_right` | `YES` | `passenger_rear_right_tshirt_color` | `WHITE` |
+| `passenger_rear_right_emotion` | `SERIOUS` | `rear_right_safety_belt` | `YES` |
+| `suitcase` | `NO` | `suitcase_color` | `null` |
+| `suitcase_location` | `null` | `suitcase_pose` | `null` |
+| `phone_codriver_seat` | `YES` | `phone_codriver_seat_color` | `BLACK` |
+| `colabottle_codriver_seat` | `YES` | `colacan_codriver_seat` | `YES` |
+| `baby_seat` | `NO` | `baby_seat_orientation` | `null` |
+| `baby` | `NO` |  |  |
 
 ## 🧰 Starter Kit
 
