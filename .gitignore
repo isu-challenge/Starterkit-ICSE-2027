@@ -1,0 +1,16 @@
+/data/**
+*/venv/**
+venv/**
+*/data/*
+**/.ipynb_checkpoints/*
+
+
+track_a/track_a_evaluation_output/*
+track_a/submissions/*
+
+track_b/track_b_evaluation_output/*
+track_b/submissions/*
+
+**/__pycache__/**
+
+**/test/test_output/**
