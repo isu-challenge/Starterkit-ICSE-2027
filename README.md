@@ -29,6 +29,8 @@ This repository provides code, data, and documentation for both competition trac
 **Dataset:**
 - [ISU-Challenge Dataset on Hugging Face](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset) — Synthetic and real in-car images with labels
 
+Do get access the to the real data, please send us an email first and register for the competition.
+
 For evaluation details: See [Track A](#-track-a-test-generation) and [Track B](#-track-b-perception-robustness) sections below.
 
 ### Example Data Channels
