@@ -18,7 +18,7 @@ while preserving the original scene content and geometry.
 submissions/your_team_name/
 ├── simulated/       Provided simulated source images
 ├── generated/       Your translated output images
-├── real/            Provided real target-domain images
+├── reference/       Provided real target-domain images
 └── labels/          Provided scene-label JSON files
 ```
 
@@ -27,7 +27,7 @@ Example pairing:
 ```text
 simulated/sample_0001_sim.png
 generated/sample_0001.png
-real/sample_0001.jpg
+reference/sample_0001.jpg
 labels/sample_0001_label.json
 ```
 
