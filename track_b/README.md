@@ -16,6 +16,18 @@ model.
 The provided `QwenISUSystem` in `evaluator_cli.py` and
 `example_custom_system.py` show the expected system interface.
 
+## Jupyter Notebooks
+
+To get familiar with the task, run the two notebooks in this order:
+
+1. [`participant_starter.ipynb`](participant_starter.ipynb) downloads the
+   dataset, lets you browse the scenes, implements `isu_system(image)`, runs it
+   on every scene, and saves the predictions to
+   `submissions/track_b_predictions.json`.
+2. [`track_b_evaluator.ipynb`](track_b_evaluator.ipynb) scores every
+   prediction file in `submissions/` against the label files and writes the
+   reports to `track_b_evaluation_output/`.
+
 ## Evaluate a System
 
 From the `track_b` directory:

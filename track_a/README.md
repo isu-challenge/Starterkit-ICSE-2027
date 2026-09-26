@@ -12,6 +12,20 @@ while preserving the original scene content and geometry.
 - Keep filename stems unique and consistent across paired simulated and generated images.
 - Do not include semantic masks, model files, or unrelated metadata in the submission folder.
 
+## Jupyter Notebooks
+
+To get familiar with the task, run the two notebooks in this order:
+
+1. [`participant_starter.ipynb`](participant_starter.ipynb) downloads the
+   dataset, lets you browse the scenes and their auxiliary channels,
+   implements `translate(...)`, runs it on every scene, and writes the
+   submission folder `submissions/<team_name>/` including
+   `generation_times.json`.
+2. [`track_a_evaluator.ipynb`](track_a_evaluator.ipynb) scores every
+   submission in `submissions/` (SAM structure, realism, failure detection,
+   diversity, and efficiency) and writes the reports to
+   `track_a_evaluation_output/`.
+
 ## Submission Structure
 
 ```text
