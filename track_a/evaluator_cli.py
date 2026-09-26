@@ -125,7 +125,7 @@ class EvaluatorTrackA:
     ) -> dict[str, Any]:
         """Evaluate generation efficiency from timestamps."""
         print("⏱️ Evaluating efficiency...")
-        return efficiency(submission_path / "generated", executed_scenes)
+        return efficiency(submission_path, executed_scenes)
 
     @staticmethod
     def build_report(

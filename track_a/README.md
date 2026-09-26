@@ -19,7 +19,8 @@ submissions/your_team_name/
 ├── simulated/       Provided simulated source images
 ├── generated/       Your translated output images
 ├── reference/       Provided real target-domain images
-└── labels/          Provided scene-label JSON files
+├── labels/          Provided scene-label JSON files
+└── generation_times.json   Generation timing (see below)
 ```
 
 Example pairing:
@@ -36,7 +37,8 @@ distribution and do not need one-to-one filename pairing. Do not rename or
 omit the provided simulated scenes, and do not modify the simulated or real
 folders.
 
-Record generation timing in `generated/generation_times.json`:
+Record generation timing in `generation_times.json` at the top level of your
+submission folder (next to `generated/`, not inside it):
 
 ```json
 {

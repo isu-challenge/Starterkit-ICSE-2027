@@ -53,7 +53,7 @@ def generate_submission(tmp_path: Path) -> Path:
         stem = path.stem.removesuffix("_sim")
         transformed.save(generated_dir / f"{stem}.png")
 
-    (generated_dir / "generation_times.json").write_text(
+    (submission / "generation_times.json").write_text(
         json.dumps({"total_seconds": 1.0, "hardware": "test-harness"})
     )
     return submission

@@ -39,7 +39,25 @@ DEFAULT_IGNORED_FEATURES = {
 	"light_front", "light_back_left", "light_back_right",
 	"exposure_compensation",
 }
-IGNORED_FEATURE_NAME_PARTS = ("env", "light")
+# Matched against any part of the key, e.g. "height_m" excludes "driver_height_m".
+# The continuous values (height, weight, head angle) have hundreds of distinct
+# values and would also make the prompt longer than Moondream's 2048-token context.
+IGNORED_FEATURE_NAME_PARTS = ("env", "light", "height_m", "weight_kg", "head_angle")
+
+# The Track B features that are prompted for and scored, named exactly as in the
+# dataset label files (see the feature table in participant_starter.ipynb).
+TRACK_B_FEATURES = (
+	"driver_emotion", "driver_phone", "driver_safety_belt",
+	"passenger_codriver", "passenger_codriver_emotion", "codriver_safety_belt",
+	"passenger_rear_seat_left", "passenger_rear_left_tshirt_color",
+	"passenger_rear_left_emotion", "passenger_rear_left_safety_belt",
+	"passenger_rear_seat_right", "passenger_rear_right_tshirt_color",
+	"passenger_rear_right_safety_belt",
+	"phone_codriver_seat", "phone_codriver_seat_color",
+	"colabottle_codriver_seat", "colacan_codriver_seat",
+	"suitcase", "suitcase_location", "suitcase_pose",
+	"baby_seat", "baby_seat_orientation", "baby",
+)
 
 
 def normalize(value):
@@ -51,7 +69,8 @@ def normalize(value):
 def comparable_features(label, ignored_features):
 	return {
 		key: value for key, value in label.items()
-		if key not in ignored_features
+		if key in TRACK_B_FEATURES
+		and key not in ignored_features
 		and not any(part in key.lower() for part in IGNORED_FEATURE_NAME_PARTS)
 		and value is not None
 		and isinstance(value, (str, bool, int, float))

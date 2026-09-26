@@ -12,3 +12,4 @@ accelerate
 einops
 nbconvert
 ipykernel
+jupyter

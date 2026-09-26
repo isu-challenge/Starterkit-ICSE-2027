@@ -135,12 +135,12 @@ The feature schema is summarized below. Values are `null` when the corresponding
 | Codriver | `passenger_codriver_emotion` | `HAPPY`, `SERIOUS` | Codriver facial expression. |
 | Codriver | `passenger_codriver_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Codriver head angle in degrees. |
 | Codriver | `codriver_safety_belt` | `NO`, `YES` | Codriver safety-belt status. |
-| Passenger occupancy | `passenger_back_seat_left` | `NO`, `YES` | Whether the rear-left passenger seat is occupied. |
+| Passenger occupancy | `passenger_rear_seat_left` | `NO`, `YES` | Whether the rear-left passenger seat is occupied. |
 | Rear-left passenger | `passenger_rear_left_tshirt_color` | `BLACK`, `WHITE` | Rear-left passenger shirt color. |
 | Rear-left passenger | `passenger_rear_left_emotion` | `HAPPY`, `SERIOUS` | Rear-left passenger facial expression. |
 | Rear-left passenger | `passenger_rear_left_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Rear-left passenger head angle in degrees. |
 | Rear-left passenger | `passenger_rear_left_safety_belt` | `NO`, `YES` | Rear-left passenger safety-belt status. |
-| Passenger occupancy | `passenger_back_seat_right` | `NO`, `YES` | Whether the rear-right passenger seat is occupied. |
+| Passenger occupancy | `passenger_rear_seat_right` | `NO`, `YES` | Whether the rear-right passenger seat is occupied. |
 | Rear-right passenger | `passenger_rear_right_tshirt_color` | `BLACK`, `WHITE` | Rear-right passenger shirt color. |
 | Rear-right passenger | `passenger_rear_right_emotion` | `HAPPY`, `SERIOUS` | Rear-right passenger facial expression. |
 | Rear-right passenger | `passenger_rear_right_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Rear-right passenger head angle in degrees. |
@@ -173,12 +173,12 @@ The following synthetic scene demonstrates how the feature labels apply to an im
 | Feature | Label | Feature | Label |
 | --- | --- | --- | --- |
 | `driver_safety_belt` | `YES` | `driver_phone` | `NO` |
-| `passenger_front_seat_right` | `NO` | `passenger_codriver_tshirt_color` | `null` |
+| `passenger_codriver` | `NO` | `passenger_codriver_tshirt_color` | `null` |
 | `passenger_codriver_emotion` | `null` | `codriver_safety_belt` | `NO` |
-| `passenger_back_seat_left` | `YES` | `passenger_rear_left_tshirt_color` | `BLACK` |
-| `passenger_rear_left_emotion` | `HAPPY` | `rear_left_safety_belt` | `YES` |
-| `passenger_back_seat_right` | `YES` | `passenger_rear_right_tshirt_color` | `WHITE` |
-| `passenger_rear_right_emotion` | `SERIOUS` | `rear_right_safety_belt` | `YES` |
+| `passenger_rear_seat_left` | `YES` | `passenger_rear_left_tshirt_color` | `BLACK` |
+| `passenger_rear_left_emotion` | `HAPPY` | `passenger_rear_left_safety_belt` | `YES` |
+| `passenger_rear_seat_right` | `YES` | `passenger_rear_right_tshirt_color` | `WHITE` |
+| `passenger_rear_right_emotion` | `SERIOUS` | `passenger_rear_right_safety_belt` | `YES` |
 | `suitcase` | `NO` | `suitcase_color` | `null` |
 | `suitcase_location` | `null` | `suitcase_pose` | `null` |
 | `phone_codriver_seat` | `YES` | `phone_codriver_seat_color` | `BLACK` |
@@ -232,7 +232,7 @@ Submissions are made through the competition platform are to be evaluated on a w
 - **Track A:** Generated image archive and reproducible generation code.
 - **Track B:** Model files, parameters, inference or training code, and predictions in the required JSON format.
 
-Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. All submission will be in addition manually reviewed.
+Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
 
 ## 🗓️ Timeline
 
@@ -248,7 +248,7 @@ The timeline is as follows:
 
 ## 📝 Paper Selection
 
-We will invite solution papers from the competition participants and accept at most five papers for the ICSE 2027 Competition Track proceedings. Submitted papers will be reviewed using soundness, writing quality and replicability. Approaches outside the top three teams in the track-metric ranking may still be invited for publication if they receive a sufficiently high paper-review score.
+We will invite solution papers from the competition participants to appear in the ICSE 2027 proceedings. Submitted papers will be reviewed using soundness, writing quality and replicability. Approaches outside the top three teams in the track-metric ranking may still be invited for publication if they receive a sufficiently high paper-review score.
 
 The best accompanying papers will be published in the ICSE proceedings, and their authors will be invited to present their results at the conference in Dublin.
 

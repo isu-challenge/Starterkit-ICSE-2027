@@ -158,8 +158,10 @@ def paired_public_metrics(first_dir, second_dir, first_name, second_name):
 
 
 def _empty_paired_metrics(first_dir, second_dir, first_name, second_name):
-    first = files_by_stem(first_dir, normalize_simulated=first_name == "simulated")
-    second = files_by_stem(second_dir, normalize_simulated=second_name == "simulated")
+    first = files_by_stem(first_dir, normalize_simulated=first_name == "simulated",
+                          normalize_real=first_name == "real")
+    second = files_by_stem(second_dir, normalize_simulated=second_name == "simulated",
+                           normalize_real=second_name == "real")
     common = set(first) & set(second)
     print(
         f"  No paired {first_name}/{second_name} stems found. "
@@ -190,22 +192,36 @@ def _empty_paired_metrics(first_dir, second_dir, first_name, second_name):
 
 
 def evaluate_public_realism(folders):
+    """Realism metrics against the real reference images.
+
+    Only the first 60 scenes (sample_00000 to sample_00059) have a real
+    reference image (reference/<stem>_real.jpg), so every metric here, including
+    FID/KID/IS, is computed on those scenes only.
+    """
     generated_files = files_by_stem(folders["generated"])
     simulated_files = files_by_stem(folders["simulated"], normalize_simulated=True)
-    reference_files = files_by_stem(folders["reference"])
+    reference_files = files_by_stem(folders["reference"], normalize_real=True)
+    generated_stems = set(generated_files) & set(reference_files)
+    simulated_stems = set(simulated_files) & set(reference_files)
+    print(f"Scenes with a real reference image: {len(reference_files)} "
+          f"(generated: {len(generated_stems)}, simulated: {len(simulated_stems)})", flush=True)
 
     generated = (
         paired_public_metrics(folders["generated"], folders["reference"], "generated", "real")
-        if set(generated_files) & set(reference_files)
+        if generated_stems
         else _empty_paired_metrics(folders["generated"], folders["reference"], "generated", "real")
     )
     simulated = (
         paired_public_metrics(folders["simulated"], folders["reference"], "simulated", "real")
-        if set(simulated_files) & set(reference_files)
+        if simulated_stems
         else _empty_paired_metrics(folders["simulated"], folders["reference"], "simulated", "real")
     )
-    generated["distribution"] = evaluate_realism(folders["reference"], folders["generated"])
-    simulated["distribution"] = evaluate_realism(folders["reference"], folders["simulated"])
+    generated["distribution"] = evaluate_realism(
+        folders["reference"], folders["generated"], stems=generated_stems
+    )
+    simulated["distribution"] = evaluate_realism(
+        folders["reference"], folders["simulated"], stems=simulated_stems
+    )
     return {"generated_vs_real": generated, "simulated_vs_real": simulated,
             "metric_directions": METRIC_DIRECTIONS}
 
@@ -213,8 +229,8 @@ def evaluate_public_realism(folders):
 def evaluate_sam(folders, output_dir, segmenter):
     """Class-agnostic SAM validation for matched simulated/generated scenes.
 
-    Real images are an unpaired reference distribution, so they are not used
-    for per-image segmentation comparison.
+    Real images are not pixel-aligned with the simulated renders, so they are
+    not used for per-image segmentation comparison.
     """
     sim = evaluate_validity(
         folders["simulated"], folders["generated"], segmenter,
@@ -281,7 +297,8 @@ def evaluate_failure_rate(folders, analyzer):
             vocabulary.setdefault(key, set()).add(_normalize(value))
     prompt = moondream_feature_prompt(vocabulary)
     images = files_by_stem(folders["generated"])
-    references = files_by_stem(folders["reference"])
+    # Only the first 60 scenes have a real reference image, so failure detection runs on those.
+    references = files_by_stem(folders["reference"], normalize_real=True)
     stems = sorted(set(labels) & set(images) & set(references))
 
     # Debug output for empty stems

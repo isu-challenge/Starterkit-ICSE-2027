@@ -70,6 +70,8 @@ class MoondreamAnalyzer:
         "temperature": 0.0,
         "top_p": 0.0,
         "max_tokens": 768,
+        # moondream2 reads settings["variant"] when it encodes a raw PIL image.
+        "variant": None,
     }
 
     def __init__(self, revision="2025-06-21", device=None, seed=0):
@@ -296,12 +298,15 @@ def list_images(folder):
     return sorted(path for path in folder.rglob("*") if path.suffix.lower() in IMAGE_EXTENSIONS)
 
 
-def files_by_stem(folder, normalize_simulated=False):
+def files_by_stem(folder, normalize_simulated=False, normalize_real=False):
     result = {}
     for path in list_images(folder):
         stem = path.stem
         if normalize_simulated and stem.endswith("_sim"):
             stem = stem[:-len("_sim")]
+        # Real reference images are named <stem>_real.jpg, e.g. sample_00059_real.jpg.
+        if normalize_real and stem.endswith("_real"):
+            stem = stem[:-len("_real")]
         if stem in result:
             raise ValueError(f"Duplicate stem '{stem}' in {folder}")
         result[stem] = path
@@ -310,7 +315,11 @@ def files_by_stem(folder, normalize_simulated=False):
 
 def paired_files(**folders):
     mappings = {
-        name: files_by_stem(folder, normalize_simulated=name == "simulated")
+        name: files_by_stem(
+            folder,
+            normalize_simulated=name == "simulated",
+            normalize_real=name in ("real", "reference"),
+        )
         for name, folder in folders.items()
     }
     print("mapping:", mappings) 
@@ -495,13 +504,23 @@ def boundary_f1(first, second, valid=None, tolerance=2):
     return float(2 * precision * recall / max(precision + recall, 1e-12))
 
 
-def evaluate_realism(real_dir, generated_dir, batch_size=16):
+def evaluate_realism(real_dir, generated_dir, batch_size=16, stems=None):
+    """FID/KID/Inception Score between real and candidate images.
+
+    When `stems` is given, both sides are restricted to those scene stems,
+    e.g. the scenes that have a real reference image.
+    """
     import torch
     from torchmetrics.image.fid import FrechetInceptionDistance
     from torchmetrics.image.kid import KernelInceptionDistance
     from torchmetrics.image.inception import InceptionScore
 
     real_paths, generated_paths = list_images(real_dir), list_images(generated_dir)
+    if stems is not None:
+        real_files = files_by_stem(real_dir, normalize_real=True)
+        generated_files = files_by_stem(generated_dir, normalize_simulated=True)
+        real_paths = [real_files[stem] for stem in sorted(stems) if stem in real_files]
+        generated_paths = [generated_files[stem] for stem in sorted(stems) if stem in generated_files]
     if len(real_paths) < 2 or len(generated_paths) < 2:
         return {"inception_score_mean": None, "inception_score_std": None,
                 "fid": None, "kid_mean": None, "kid_std": None,

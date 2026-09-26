@@ -70,9 +70,10 @@ class MyTranslator(Translator):
 submissions/
 └── your_team_name/
     ├── simulated/           # Original scenes (*_sim.png)
-    ├── generated/           # Your transformed scenes + generation_times.json
+    ├── generated/           # Your transformed scenes
     ├── reference/           # Real reference images
-    └── labels/              # Ground-truth JSON files
+    ├── labels/              # Ground-truth JSON files
+    └── generation_times.json # Generation timing
 ```
 
 ### Generated Reports
