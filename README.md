@@ -15,29 +15,34 @@ Real-world in-cabin edge cases are expensive and difficult to collect at scale. 
 
 ## 🧰 Starter Kit
 
-This repository provides code, data, and documentation for both competition tracks. The starter kit dataset is available on [Hugging Face](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset).
+This repository provides code, data, and documentation for both competition tracks. 
 
-### 📚 Documentation
+### Documentation
 
-**Getting started with evaluation scripts:**
-
-- **[QUICK_START.md](QUICK_START.md)** — 5-minute guide to run evaluations via CLI (recommended first read)
-- **[EVALUATION_GUIDE.md](EVALUATION_GUIDE.md)** — Complete reference with architecture, API, and troubleshooting
 - **[Track A README](track_a/README.md)** — Participant guide for in-car scene translation and evaluation
 - **[Track B README](track_b/README.md)** — Participant guide for in-car scene understanding and evaluation
 
-**Dataset:**
-- [ISU-Challenge Dataset on Hugging Face](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset) — Synthetic and real in-car images with labels
+### Dataset and Example Data Channels
 
-Do get access the to the real data, please send us an email first and register for the competition.
+The **ISU-Test Interior Scene Dataset** is publicly available on Hugging Face in two versions. 
 
-For evaluation details: See [Track A](#-track-a-test-generation) and [Track B](#-track-b-perception-robustness) sections below.
+The starter kit includes synthetic scenes with auxiliary channels such as seg-maps and canny edge maps for Track A generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1], as well as real images for 60 reconstructed scene.
 
-### Example Data Channels
+| Version | Scenes | Contents |
+| --- | ---: | --- |
+| **Base** | 1,060 | Diverse interior scenes, including simulated and 60 real scenes, Canny edge maps, and depth maps |
+| **Extended** | 5,000 | Larger collection of diverse interior scenes, including simulated scenes, Canny edge maps, and depth maps |
 
-The starter kit includes synthetic scenes with auxiliary channels for Track A generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1], as well as real
-images for Track B. The examples below use the same synthetic scene where possible so that the
-relationship between the RGB image, segmentation map, and Canny image is easy to see.
+Participants can use both datasets for development while only the base dataset plus a hidden testset will be used for evaluation.
+
+#### 🤗 Hugging Face
+
+* **[Base Dataset](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset)** — 1,060 scenes
+* **[Extended Dataset](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset/tree/extended)** — 5,000 scenes
+
+
+ The examples below show the different channels available.
+
 
 | Synthetic RGB image | Instance segmentation map | Canny edge map | Real in-car image |
 | --- | --- | --- | --- |
@@ -47,7 +52,8 @@ relationship between the RGB image, segmentation map, and Canny image is easy to
 ## 🏁 Competition Tracks
 
 ### 🧪 Track A: Test Generation
-Track A is for participants who develop automated test generators. The goal is to generate realistic, diverse, and challenging in-car scenes that expose failures in VLM-based ISU systems while preserving the semantic and geometric ground truth of the source scene.
+
+The goal of Track A is to generate realistic, diverse, and challenging in-car scenes that expose failures in VLM-based ISU systems while preserving the semantic and geometric ground truth of the source scene.
 
 Participants use synthetic base scenes together with ground-truth annotations and auxiliary channels, such as depth maps and semantic segmentation maps. Test generators may diversify the visual appearance of the scenes, including:
 
@@ -114,55 +120,12 @@ See [`track_b/evaluator_cli.py`](track_b/evaluator_cli.py) for CLI interface. Im
 
 ### 🧩 Features
 
-The benchmark describes each scene through a set of observable features. These labels cover driver behaviour, passenger occupancy, seat-belt usage, and the presence and location of objects in the cabin. Together, they define the questions that Track B systems must address and the semantic information that Track A generators must preserve when changing a scene's visual appearance.
+The benchmark describes each scene through a set of observable features. These labels cover information such as driver behaviour, passenger occupancy, seat-belt usage, and the presence and location of objects in the cabin. Together, they define the questions that Track B systems must detect and the semantic information that Track A generators must preserve when changing a scene's visual appearance.
 
-The feature representation is intentionally structured so that every prediction can be compared directly with the ground truth. A scene may contain several simultaneous conditions, such as an occupied rear seat, an unfastened belt, and a suitcase in the rear. This supports both fine-grained failure analysis and diversity measurements across generated scenes.
+The complete list of relevant features per track is provided here: https://isu-challenge.github.io/feature-schema.html.
 
-The full schema is listed below; however, Track A and Track B predictions and evaluations use only the feature subsets specified in their respective notebooks: the [Track A participant starter notebook](track_a/participant_starter.ipynb) and the [Track B evaluator notebook](track_b/track_b_evaluator.ipynb).
+Track A and Track B predictions and evaluations use only the feature subsets specified in their respective notebooks: the [Track A participant starter notebook](track_a/participant_starter.ipynb) and the [Track B evaluator notebook](track_b/track_b_evaluator.ipynb).
 
-The feature schema is summarized below. Values are `null` when the corresponding object or passenger is not present.
-
-| Category | Feature | Possible values | Description |
-| --- | --- | --- | --- |
-| Environment | `env` | `URBAN`, `HIGHWAY`, `NATURE`, `COUNTRYSIDE` | Scene environment. |
-| Driver | `driver_gender` | `MALE`, `FEMALE` | Driver gender. |
-| Driver | `driver_tshirt_color` | `BLACK`, `WHITE` | Driver shirt color. |
-| Driver | `driver_emotion` | `HAPPY`, `SERIOUS` | Driver facial expression. |
-| Driver | `driver_phone` | `NO`, `YES` | Whether the driver is using a phone. |
-| Driver | `driver_safety_belt` | `NO`, `YES` | Driver safety-belt status. |
-| Passenger occupancy | `passenger_codriver` | `NO`, `YES` | Whether the front-right passenger seat is occupied. |
-| Codriver | `passenger_codriver_tshirt_color` | `BLACK`, `WHITE` | Codriver shirt color. |
-| Codriver | `passenger_codriver_emotion` | `HAPPY`, `SERIOUS` | Codriver facial expression. |
-| Codriver | `passenger_codriver_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Codriver head angle in degrees. |
-| Codriver | `codriver_safety_belt` | `NO`, `YES` | Codriver safety-belt status. |
-| Passenger occupancy | `passenger_rear_seat_left` | `NO`, `YES` | Whether the rear-left passenger seat is occupied. |
-| Rear-left passenger | `passenger_rear_left_tshirt_color` | `BLACK`, `WHITE` | Rear-left passenger shirt color. |
-| Rear-left passenger | `passenger_rear_left_emotion` | `HAPPY`, `SERIOUS` | Rear-left passenger facial expression. |
-| Rear-left passenger | `passenger_rear_left_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Rear-left passenger head angle in degrees. |
-| Rear-left passenger | `passenger_rear_left_safety_belt` | `NO`, `YES` | Rear-left passenger safety-belt status. |
-| Passenger occupancy | `passenger_rear_seat_right` | `NO`, `YES` | Whether the rear-right passenger seat is occupied. |
-| Rear-right passenger | `passenger_rear_right_tshirt_color` | `BLACK`, `WHITE` | Rear-right passenger shirt color. |
-| Rear-right passenger | `passenger_rear_right_emotion` | `HAPPY`, `SERIOUS` | Rear-right passenger facial expression. |
-| Rear-right passenger | `passenger_rear_right_head_angle` | `-45`, `-30`, `-15`, `0`, `15`, `30`, `45` | Rear-right passenger head angle in degrees. |
-| Rear-right passenger | `passenger_rear_right_safety_belt` | `NO`, `YES` | Rear-right passenger safety-belt status. |
-| Objects | `phone_codriver_seat` | `NO`, `YES` | Whether a phone is present on the codriver seat. |
-| Objects | `phone_codriver_seat_color` | `BLACK`, `WHITE` | Phone color. |
-| Objects | `colabottle_codriver_seat` | `NO`, `YES` | Whether a cola bottle is present on the codriver seat. |
-| Objects | `colacan_codriver_seat` | `NO`, `YES` | Whether a cola can is present on the codriver seat. |
-| Objects | `suitcase` | `NO`, `YES` | Whether a suitcase is present. |
-| Objects | `suitcase_color` | `ANTRACITE`, `YELLOW` | Suitcase color. |
-| Objects | `suitcase_location` | `CO_DRIVER_SEAT`, `REAR_SEAT` | Suitcase location. |
-| Objects | `suitcase_pose` | `UPWARDS`, `FLAT` | Suitcase orientation. |
-| Child safety | `baby_seat` | `NO`, `YES` | Whether a baby seat is present. |
-| Child safety | `baby_seat_orientation` | `FRONT_FACING`, `REAR_FACING` | Baby-seat orientation. |
-| Child safety | `baby` | `NO`, `YES` | Whether a baby is present. |
-| Driver attributes | `driver_height_m` | `1.6` to `2.0` | Driver height in meters. |
-| Driver attributes | `driver_weight_kg` | `50` to `100` | Driver weight in kilograms. |
-| Lighting | `light_front` | `0.0` to `0.5` | Front lighting level. |
-| Lighting | `light_back_left` | `0.0` to `0.5` | Rear-left lighting level. |
-| Lighting | `light_back_right` | `0.0` to `0.5` | Rear-right lighting level. |
-| Environment | `env_strength` | `0.5` to `1.0` | Environment intensity. |
-| Camera | `exposure_compensation` | `0.0` to `2.0` | Camera exposure compensation. |
 
 #### Example Feature Labels
 
@@ -218,8 +181,6 @@ The starter kit provides 1,000 synthetically generated images and 50 real in-car
 The exact output schemas, executable evaluation commands, and metric implementations are available in the starter kit.
 
 ## 🤝 Participation
-
-The competition is open to participants from software engineering, computer vision, machine learning, and related communities. Teams may participate in one or both tracks.
 
 To register, send the team or participant name, affiliation, and address to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. Registration details and deadlines will be announced with the competition launch. Provide ideally a Team name in case you participate as a group.
 

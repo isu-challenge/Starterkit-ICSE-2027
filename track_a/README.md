@@ -8,6 +8,7 @@ while preserving the original scene content and geometry.
 - Submit one generated image for every simulated image.
 - Keep the original width, height, framing, and camera viewpoint.
 - Do not crop, rotate, mirror, add, remove, or move scene objects.
+- Preserve predefined [features](https://isu-challenge.github.io/feature-schema.html)
 - Return RGB images in PNG, JPEG, BMP, or TIFF format. PNG is recommended.
 - Keep filename stems unique and consistent across paired simulated and generated images.
 - Do not include semantic masks, model files, or unrelated metadata in the submission folder.

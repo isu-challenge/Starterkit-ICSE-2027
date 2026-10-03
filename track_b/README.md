@@ -9,7 +9,7 @@ model.
 
 - Implement the `ISUSystem` interface with `predict(image)` and `name()` methods.
 - Accept a PIL RGB image and return a dictionary of feature names and values.
-- Return only values from the answer options supplied in the evaluator prompt.
+- Return only values from the answer options supplied in the evaluator prompt. I.e. predict predefined [features](https://isu-challenge.github.io/feature-schema.html)
 - Do not use ground-truth labels or label-derived data during inference.
 - Keep system code separate from evaluation and scoring logic.
 
