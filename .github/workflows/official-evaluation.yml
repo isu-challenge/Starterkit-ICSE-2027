@@ -1,0 +1,208 @@
+name: Official evaluation
+
+# Scores competition submissions opened as pull requests against main.
+# pull_request_target always runs this file from main, never from the pull request.
+# The organizer runner reads only submissions/<team_id>/<track>/ from the pull request
+# and evaluates it with a pinned copy of the evaluators. Submission pull requests are
+# not merged.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths: ["submissions/**"]
+
+permissions: {}
+
+jobs:
+  evaluate:
+    name: Evaluate submission
+    runs-on: [self-hosted, isu-comp-runner]
+    environment: evaluation
+    timeout-minutes: 300
+    concurrency:
+      group: isu-evaluation-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    outputs:
+      status: ${{ steps.evaluate.outputs.status }}
+    steps:
+      - name: Run sandboxed evaluation
+        id: evaluate
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE_REPOSITORY: ${{ github.repository }}
+          RESULT_DIR: ${{ runner.temp }}/isu-result
+        run: python3 /srv/isu/eval/bin/evaluate_pr.py
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isu-result
+          path: ${{ runner.temp }}/isu-result/result.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail unless the submission was scored
+        if: steps.evaluate.outputs.status != 'ok' && steps.evaluate.outputs.status != 'superseded'
+        env:
+          STATUS: ${{ steps.evaluate.outputs.status }}
+        run: |
+          echo "::error::Submission status: ${STATUS:-unknown}"
+          exit 1
+
+  publish:
+    name: Publish to leaderboard
+    needs: evaluate
+    if: needs.evaluate.outputs.status == 'ok'
+    runs-on: ubuntu-latest
+    environment: leaderboard
+    permissions: {}
+    concurrency:
+      group: isu-leaderboard-publish
+      cancel-in-progress: false
+    steps:
+      - name: Download result
+        uses: actions/download-artifact@v4
+        with:
+          name: isu-result
+          path: result
+
+      - name: Check out leaderboard site
+        uses: actions/checkout@v4
+        with:
+          repository: isu-challenge/isu-challenge.github.io
+          ref: main
+          path: site
+          ssh-key: ${{ secrets.LEADERBOARD_DEPLOY_KEY }}
+
+      - name: Update leaderboard data
+        shell: python
+        run: |
+          import datetime, json, math, os, re
+          from pathlib import Path
+
+          result = json.loads(Path("result/result.json").read_text(encoding="utf-8"))
+          team_id = str(result.get("team_id", ""))
+          track = str(result.get("track", ""))
+          commit = str(result.get("commit", ""))
+          if (result.get("status") != "ok"
+                  or not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,38}", team_id)
+                  or track not in ("track_a", "track_b")
+                  or not re.fullmatch(r"[0-9a-f]{40}", commit)):
+              raise SystemExit("The result is not publishable.")
+
+          def text(value, limit):
+              return str(value or "")[:limit]
+
+          metrics = {}
+          for key, value in (result.get("metrics") or {}).items():
+              if not re.fullmatch(r"[a-z0-9_]{1,64}", str(key)):
+                  continue
+              if value is None or (isinstance(value, (int, float)) and not isinstance(value, bool)
+                                   and math.isfinite(value)):
+                  metrics[key] = value
+
+          entry = {
+              "team_id": team_id,
+              "display_name": text(result.get("display_name"), 100),
+              "track": track,
+              "pull_request": int(result["pr"]),
+              "commit": commit,
+              "evaluated_at": text(result.get("evaluated_at"), 40),
+              "hardware": text(result.get("hardware"), 80),
+              "evaluator_ref": text(result.get("evaluator_ref"), 40),
+              "efficiency_self_reported": bool(result.get("efficiency_self_reported")),
+              "metrics": metrics,
+          }
+
+          path = Path("site/data/leaderboard.json")
+          data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"schema": 1, "entries": []}
+          data["entries"] = [
+              existing for existing in data.get("entries", [])
+              if (existing.get("team_id"), existing.get("track"), existing.get("commit")) != (team_id, track, commit)
+          ] + [entry]
+          data["updated_at"] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
+              handle.write(f"LB_TEAM={team_id}\nLB_TRACK={track}\nLB_COMMIT={commit[:12]}\n")
+
+      - name: Commit and push
+        working-directory: site
+        run: |
+          git config user.name "isu-challenge-bot"
+          git config user.email "isu-challenge-bot@users.noreply.github.com"
+          git add data/leaderboard.json
+          if git diff --cached --quiet; then
+            echo "Leaderboard unchanged."
+            exit 0
+          fi
+          git commit --quiet -m "Leaderboard: ${LB_TEAM} ${LB_TRACK} ${LB_COMMIT}"
+          for attempt in 1 2 3; do
+            if git push --quiet origin HEAD:main; then
+              exit 0
+            fi
+            git pull --quiet --rebase origin main
+          done
+          echo "::error::Could not push the leaderboard update."
+          exit 1
+
+  report:
+    name: Report result
+    needs: [evaluate, publish]
+    if: always() && needs.evaluate.result != 'cancelled' && needs.evaluate.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download result
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: isu-result
+          path: result
+
+      - name: Write comment
+        shell: python
+        env:
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+        run: |
+          import json, os
+          from pathlib import Path
+
+          path = Path("result/result.json")
+          result = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+          status = result.get("status") or "failed"
+          if status != "superseded":
+              titles = {"ok": "✅ Scored", "rejected": "❌ Rejected", "failed": "⚠️ Evaluation failed"}
+              lines = ["### ISU official evaluation", "", f"**{titles.get(status, status)}**"]
+              if result.get("team_id"):
+                  lines.append(f"Team `{result['team_id']}` · {result.get('track', 'unknown track')} · "
+                               f"commit `{str(result.get('commit', ''))[:12]}`")
+              lines += ["", result.get("message") or
+                        "The evaluation did not produce a result. The organizers can inspect the runner logs."]
+              metrics = result.get("metrics") or {}
+              if status == "ok" and metrics:
+                  lines += ["", "| Metric | Value |", "| --- | --- |"]
+                  for key, value in metrics.items():
+                      shown = "n/a" if value is None else (f"{value:.4g}" if isinstance(value, float) else str(value))
+                      lines.append(f"| `{key}` | {shown} |")
+                  if result.get("efficiency_self_reported"):
+                      lines += ["", "Generation time comes from your `generation_times.json` and is "
+                                    "re-measured for the final evaluation."]
+                  published = os.environ.get("PUBLISH_RESULT") == "success"
+                  lines += ["", "Published to the leaderboard." if published else
+                            "The leaderboard update failed; please contact the organizers."]
+              lines += ["", f"Evaluated on {result.get('hardware', 'unknown hardware')} with evaluator "
+                            f"`{str(result.get('evaluator_ref', ''))[:12]}`."]
+              Path("comment.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+      - name: Post comment
+        if: hashFiles('comment.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file comment.md
