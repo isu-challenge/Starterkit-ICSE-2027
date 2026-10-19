@@ -75,8 +75,8 @@ jobs:
           repository: isu-challenge/isu-challenge.github.io
           ref: main
           path: site
-          # Fine-grained token limited to isu-challenge.github.io with Contents: read and write.
-          token: ${{ secrets.LEADERBOARD_TOKEN }}
+          # Write deploy key of isu-challenge.github.io; the private half is stored only in this environment.
+          ssh-key: ${{ secrets.LEADERBOARD_DEPLOY_KEY }}
 
       - name: Update leaderboard data
         shell: python
