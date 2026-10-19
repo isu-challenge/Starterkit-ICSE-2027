@@ -37,7 +37,7 @@ jobs:
 
       - name: Upload result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: isu-result
           path: ${{ runner.temp }}/isu-result/result.json
@@ -56,7 +56,7 @@ jobs:
     name: Publish to leaderboard
     needs: evaluate
     if: needs.evaluate.outputs.status == 'ok'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: leaderboard
     permissions: {}
     concurrency:
@@ -64,13 +64,13 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Download result
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: isu-result
           path: result
 
       - name: Check out leaderboard site
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: isu-challenge/isu-challenge.github.io
           ref: main
@@ -155,12 +155,12 @@ jobs:
     name: Report result
     needs: [evaluate, publish]
     if: always() && needs.evaluate.result != 'cancelled' && needs.evaluate.result != 'skipped'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
       - name: Download result
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: isu-result
