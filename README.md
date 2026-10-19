@@ -75,7 +75,7 @@ Transformations that modify the semantic or geometric structure of the scene are
 Download data from [Hugging Face](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset), then evaluate submissions via CLI:
 ```bash
 cd track_a
-python evaluator_cli.py evaluate --submissions-dir submissions --output-dir results
+python evaluator_cli.py evaluate --submission-path submissions/<team_name> --output report.json
 ```
 
 See [`track_a/evaluator_cli.py`](track_a/evaluator_cli.py) for CLI interface. Implementation example in [`track_a/example_custom_translator.py`](track_a/example_custom_translator.py).
@@ -182,18 +182,56 @@ The exact output schemas, executable evaluation commands, and metric implementat
 
 ## 🤝 Participation
 
-To register, send the team or participant name, affiliation, and address to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. Registration details and deadlines will be announced with the competition launch. Provide ideally a Team name in case you participate as a group.
+To register, send the team or participant name, affiliation, address, and the GitHub usernames of all team members to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. Only pull requests opened by registered GitHub accounts are evaluated. Registration details and deadlines will be announced with the competition launch. Provide ideally a Team name in case you participate as a group.
 
 The competition is organized in connection with A* conference ICSE 2027. The top-ranked teams are invited to submit solution papers to the ICSE 2027 Competition Track proceedings. Novel approaches will be invited based on their methodological contribution, even if they do not achieve the highest leaderboard position.
 
 ## 📦 Submission Format
 
-Submissions are made through the competition platform are to be evaluated on a withheld test set.
+Submissions are made as pull requests to this repository and are evaluated automatically on a withheld test set.
 
 - **Track A:** Generated image archive and reproducible generation code.
 - **Track B:** Model files, parameters, inference or training code, and predictions in the required JSON format.
 
 Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
+
+### Submitting via pull request
+
+1. Register your team with the GitHub usernames of all members (see [Participation](#-participation)). You receive a team id, for example `team-07`.
+2. Fork this repository and add your submission under `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`.
+3. Open a pull request against `main`. A pull request may only change files in your own team folder and for one track.
+4. The submission is evaluated automatically on the organizers' GPU runner. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Pushing a new commit to the pull request starts a new evaluation. Submission pull requests are not merged.
+
+Each team has a limited number of evaluations per track and day. Submissions run without network access on an NVIDIA GPU; final latency and generation-time measurements are taken on the predefined `g6e.2xlarge` instance.
+
+**Track A layout.** The organizers add the simulated images, reference images, and labels; do not include them.
+
+```text
+submissions/<team_id>/track_a/
+├── generated/              One RGB image per simulated scene, named <stem>.png
+├── generation_times.json   {"total_seconds": 12.0, "hardware": "..."}
+└── code/                   Code used to generate the images
+```
+
+**Track B layout.** The system receives only RGB images and runs without network access.
+
+```text
+submissions/<team_id>/track_b/
+├── system.py          Defines create_system(device) and returns your ISU system
+├── requirements.txt   Optional extra pip packages; torch is fixed to 2.6.0 with CUDA 12.4
+└── models.txt         Optional public Hugging Face models to download before evaluation,
+                       one per line: <repo_id>[@<revision>]
+```
+
+`create_system(device)` must return an object with `predict(image)` and `name()` as defined by `ISUSystem` in [`track_b/evaluator_cli.py`](track_b/evaluator_cli.py); `set_prompt(prompt)` is called first if your system defines it. The `track_b/` folder is importable, so the reference baseline is the following `system.py` together with `Qwen/Qwen2.5-VL-3B-Instruct` in `models.txt`:
+
+```python
+from evaluator_cli import QwenISUSystem
+
+
+def create_system(device):
+    return QwenISUSystem(device=device)
+```
 
 ## 🗓️ Timeline
 

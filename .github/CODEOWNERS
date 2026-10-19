@@ -1,0 +1,6 @@
+# Changes to the evaluation workflow, evaluators, and repository policy need organizer review.
+# Enable "Require review from Code Owners" in the branch protection rule for main.
+/.github/   @Leviathan321 @rifaaath
+/track_a/   @Leviathan321 @rifaaath
+/track_b/   @Leviathan321 @rifaaath
+/README.md  @Leviathan321 @rifaaath
