@@ -202,7 +202,7 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
 3. Open a pull request against `main`. A pull request may only change files in your own team folder and for one track.
 4. The submission is evaluated automatically on the organizers' GPU runner. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Pushing a new commit to the pull request starts a new evaluation. Submission pull requests are not merged.
 
-Each team has a limited number of evaluations per track and day. Submissions run without network access on an NVIDIA GPU; final latency and generation-time measurements are taken on the predefined `g6e.2xlarge` instance.
+Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. Submissions are read from Git as committed: each file must be below 100 MB, the submission below 2 GB in total, and Git LFS is not supported. Final latency and generation-time measurements are taken on the predefined `g6e.2xlarge` instance.
 
 **Track A layout.** The organizers add the simulated images, reference images, and labels; do not include them.
 
@@ -212,6 +212,8 @@ submissions/<team_id>/track_a/
 ├── generation_times.json   {"total_seconds": 12.0, "hardware": "..."}
 └── code/                   Code used to generate the images
 ```
+
+`generated/` must contain exactly one image per simulated scene of the evaluation set, with the same width and height, named after the scene without `_sim` (`sample_0001.png` for `sample_0001_sim.png`). Sub-folders and other files in `generated/` are rejected.
 
 **Track B layout.** The system receives only RGB images and runs without network access.
 
@@ -231,6 +233,31 @@ from evaluator_cli import QwenISUSystem
 
 def create_system(device):
     return QwenISUSystem(device=device)
+```
+
+**Track B runtime.** Your system runs in a container with:
+
+- an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
+- no network access, and a time limit of 2 hours for all evaluation images, including model loading;
+- a read-only file system except `/tmp`; the working directory is your submission folder, so files in it can be opened with relative paths;
+- Python 3.11, `torch` 2.6.0 (CUDA 12.4), `transformers` 4.x, `accelerate`, `torchvision`, `numpy`, `Pillow`, `scipy`, `scikit-learn`, `scikit-image`, `pandas`, and `einops`;
+- the models listed in `models.txt` in the default Hugging Face cache: load them with `from_pretrained("<repo_id>")`, passing the same `revision` if you pinned one, and without `cache_dir`. Other weights must be files in your submission folder; put weights above 100 MB in a public Hugging Face model repository and list it in `models.txt`.
+
+`requirements.txt` lists additional PyPI packages, one per line with an optional version, for example `timm==1.0.15`. They are installed as binary wheels only; pip options, URLs, and local paths are not accepted.
+
+**Test your submission locally** before opening the pull request. This runs your system as the official evaluation does: offline, from your submission folder, on the data in `track_b/data`. Download the models from `models.txt` once beforehand, and define `set_prompt(prompt)` even if your system ignores the prompt.
+
+```bash
+cd submissions/<team_id>/track_b
+HF_HUB_OFFLINE=1 python - <<'EOF'
+import sys
+sys.path[:0] = [".", "../../../track_b"]
+from evaluator_cli import EvaluatorTrackB
+from system import create_system
+
+EvaluatorTrackB(data_dir="../../../track_b/data", isu_system=create_system("cuda"),
+                output_path="../../../track_b/track_b_evaluation_output/report.json").evaluate()
+EOF
 ```
 
 ## 🗓️ Timeline
