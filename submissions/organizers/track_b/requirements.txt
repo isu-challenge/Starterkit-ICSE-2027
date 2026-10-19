@@ -1,1 +1,1 @@
---index-url https://example.com/simple
+timm==1.0.15
