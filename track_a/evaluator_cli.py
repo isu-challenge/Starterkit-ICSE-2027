@@ -22,6 +22,7 @@ from image_metrics_utils import (
     MoondreamAnalyzer,
     Qwen25VLAnalyzer,
     TransformersSamSegmenter,
+    list_images,
     save_report,
 )
 from track_a_metrics import (
@@ -233,11 +234,11 @@ class ParticipantEvaluator:
         )
         ReportWriter.write(report, self.output_path)
 
-        # Efficiency
+        # Efficiency over all generated scenes, as in track_a_evaluator.ipynb
         print("⏱️ Evaluating efficiency...")
         report["efficiency"] = EvaluatorTrackA.evaluate_efficiency(
             folders["generated"].parent,
-            report["final"]["failure"]["executed"],
+            len(list_images(folders["generated"])),
         )
         timing = report["efficiency"].get("seconds_per_scene")
         if timing is not None:

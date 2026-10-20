@@ -290,6 +290,12 @@ def parse_object(answer):
 
 
 def evaluate_failure_rate(folders, analyzer):
+    """Failure detection on the scenes without a real reference image.
+
+    The system under test answers the feature questions for each generated image. A feature
+    fails when its answer differs from the scene label, and a scene fails when any of its
+    features fails. Scenes with a real reference image are used for the realism metrics.
+    """
     labels = load_labels(folders["labels"])
     vocabulary = {}
     for label in labels.values():
@@ -297,55 +303,37 @@ def evaluate_failure_rate(folders, analyzer):
             vocabulary.setdefault(key, set()).add(_normalize(value))
     prompt = moondream_feature_prompt(vocabulary)
     images = files_by_stem(folders["generated"])
-    # Only the first 60 scenes have a real reference image, so failure detection runs on those.
     references = files_by_stem(folders["reference"], normalize_real=True)
-    stems = sorted(set(labels) & set(images) & set(references))
+    stems = sorted((set(labels) & set(images)) - set(references))
 
     # Debug output for empty stems
     if not stems:
-        print(f"  WARNING: No matching stems found for failure detection")
+        print(f"  WARNING: No generated scenes without a real reference image found for failure detection")
         print(f"    Labels stems ({len(labels)}): {sorted(labels.keys())}", flush=True)
         print(f"    Generated stems ({len(images)}): {sorted(images.keys())}", flush=True)
         print(f"    Reference stems ({len(references)}): {sorted(references.keys())}", flush=True)
     rows = []
     analyzer_name = getattr(analyzer, '__class__', type(analyzer)).__name__
     for index, stem in enumerate(stems, 1):
-        print(f"  {analyzer_name} generated-vs-real matching: {index}/{len(stems)} - {stem}", flush=True)
+        print(f"  {analyzer_name} generated-vs-label matching: {index}/{len(stems)} - {stem}", flush=True)
         started = time.perf_counter()
-        real_image = Image.open(references[stem]).convert("RGB")
         generated_image = Image.open(images[stem]).convert("RGB")
-        real_prediction, real_answers = analyzer.classify_features(real_image, vocabulary)
-        identical_inputs = (
-            real_image.size == generated_image.size
-            and np.array_equal(np.asarray(real_image), np.asarray(generated_image))
-        )
-        # Identical pixels must have identical semantic measurements. Avoid a
-        # second stochastic VLM call changing the score for the same image.
-        if identical_inputs:
-            generated_prediction = dict(real_prediction)
-            generated_answers = dict(real_answers)
-        else:
-            generated_prediction, generated_answers = analyzer.classify_features(
-                generated_image, vocabulary
-            )
-        keys = sorted(public_features(labels[stem]))
-        matches = {
-            key: _normalize(generated_prediction.get(key)) == _normalize(real_prediction.get(key))
-            for key in keys
-        }
+        prediction, answers = analyzer.classify_features(generated_image, vocabulary)
+        expected = {key: _normalize(value) for key, value in sorted(public_features(labels[stem]).items())}
+        matches = {key: _normalize(prediction.get(key)) == value for key, value in expected.items()}
         rows.append({"image": stem, "failure": not all(matches.values()),
-                     "comparison": "generated_vs_real",
-                     "identical_inputs": identical_inputs,
-                     "expected": real_prediction, "prediction": generated_prediction,
-                     "real_prediction": real_prediction,
-                     "generated_prediction": generated_prediction,
+                     "comparison": "generated_vs_label",
+                     "expected": expected, "prediction": prediction,
                      "feature_matches": matches,
-                     "raw_real_answers": real_answers,
-                     "raw_generated_answers": generated_answers,
+                     "raw_generated_answers": answers,
                      "inference_seconds": time.perf_counter() - started})
     failures = sum(row["failure"] for row in rows)
+    feature_matches = [match for row in rows for match in row["feature_matches"].values()]
     return {"failure_rate": failures / len(rows) if rows else None, "failures": failures,
-            "executed": len(rows), "prompt": prompt,
+            "executed": len(rows),
+            "feature_failure_rate": (sum(not match for match in feature_matches) / len(feature_matches)
+                                     if feature_matches else None),
+            "prompt": prompt,
             "inference": {"model": "vikhyatk/moondream2",
                           "revision": analyzer.revision,
                           "seed": analyzer.seed,

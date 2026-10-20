@@ -1,3 +1,0 @@
-# Public Hugging Face models your system loads, one per line: <repo_id> or <repo_id>@<revision>.
-# Example (the reference baseline):
-# Qwen/Qwen2.5-VL-3B-Instruct

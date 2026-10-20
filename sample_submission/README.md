@@ -1,19 +1,17 @@
 # Sample submission
 
-Templates for the folder you encrypt and submit. The rules, the runtime environment, and
-how to test locally are described under "Official Submission" in the
+Templates for the folder you encrypt and submit. The rules, the Docker image, and how to
+test locally are described under "Official Submission" in the
 [Track A README](../track_a/README.md#official-submission) and the
 [Track B README](../track_b/README.md#official-submission).
 
 ```text
 track_a/
 ├── translator.py           template translator with create_translator(device)
-├── models.txt              Hugging Face models your translator loads
-└── requirements.txt        extra PyPI packages
+└── Dockerfile              image your translator runs in
 track_b/
 ├── system.py               template ISU system with create_system(device)
-├── models.txt              Hugging Face models your system loads
-└── requirements.txt        extra PyPI packages
+└── Dockerfile              image your system runs in
 ```
 
 Copy a template into your local submission folder, for example

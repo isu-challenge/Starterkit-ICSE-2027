@@ -59,8 +59,9 @@ def collect_files(source: Path, track: str) -> list[Path]:
 
 def check_layout(track: str, source: Path) -> None:
     entry = "translator.py" if track == "track_a" else "system.py"
-    if not (source / entry).is_file():
-        fail(f"a {track.replace('_', ' ').title()} submission needs {entry} in {source}")
+    for name in (entry, "Dockerfile"):
+        if not (source / name).is_file():
+            fail(f"a {track.replace('_', ' ').title()} submission needs {name} in {source}")
 
 
 def normalized(info: tarfile.TarInfo) -> tarfile.TarInfo:

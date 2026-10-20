@@ -155,10 +155,12 @@ Both tracks use executable, automated evaluation pipelines.
 
 ### 🧪 Track A Metrics
 
-- **Failure rate:** Based on feature matching, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
+- **Failure rate:** Based on feature matching between the answers of the system under test for the generated image and the scene labels, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
 - **Realism:** Apply default sim2real gap assessment techqniques [2], combined into a realism score: the mean relative improvement of the generated images over their simulated inputs across the realism metrics, each clipped to [-1, 1].
 - **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
 - **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
+
+Realism is measured on the withheld scenes with a real reference image, failure rate and diversity on the withheld synthetic scenes without one, and the structural validity of the generated images (SAM) on all scenes.
 
 Track A results are ranked using Pareto non-dominance sorting across scene failure rate, feature failure rate, realism score, feature diversity, and generation time. In case of a tie, a weighted linear combination of min-max normalized values is used (failure 0.3, realism 0.4, diversity 0.3).
 
@@ -190,8 +192,8 @@ The competition is organized in connection with A* conference ICSE 2027. The top
 
 Submissions are made as pull requests to this repository and are evaluated automatically on a withheld test set.
 
-- **Track A:** Generation code (a `Translator`), which the organizers run on withheld scenes.
-- **Track B:** Model files, parameters, inference or training code, and predictions in the required JSON format.
+- **Track A:** Generation code (a `Translator`) and a `Dockerfile` for its environment, which the organizers run on withheld scenes.
+- **Track B:** Inference code (an `ISUSystem`) and a `Dockerfile` for its environment, including model files, which the organizers run on withheld scenes.
 
 Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
 
@@ -209,7 +211,7 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
 4. Open a pull request against `main` that changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track per pull request.
 5. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Every push to the pull request starts a new evaluation; pull requests are not merged.
 
-Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption.
+Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption; larger model files can be downloaded while your Docker image is built.
 
 ## 🗓️ Timeline
 

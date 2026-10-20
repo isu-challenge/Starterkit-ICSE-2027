@@ -121,42 +121,59 @@ requires the model dependencies and may download weights on the first run.
 
 ## Official Submission
 
-You submit your translator as code, and the official evaluation runs it on withheld
-simulated scenes. Prepare a folder, for example `submissions/<team_name>/` in this
-directory (ignored by Git); [`sample_submission/track_a/`](../sample_submission/track_a/)
-is a template:
+You submit your translator as code, together with a Docker image that it runs in, and the
+official evaluation runs it on withheld simulated scenes. Prepare a folder, for example
+`submissions/<team_name>/` in this directory (ignored by Git);
+[`sample_submission/track_a/`](../sample_submission/track_a/) is a template:
 
 ```text
 translator.py      defines create_translator(device), which returns your Translator
-models.txt         optional: public Hugging Face models your translator loads, <repo_id>[@<revision>]
-requirements.txt   optional: extra PyPI packages, one per line, e.g. diffusers==0.35.1
+Dockerfile         builds the image your translator runs in, starting with FROM isu-challenge-base
 ```
 
-Add any other files your translator needs, such as weights. The evaluation calls
-`create_translator(device)` once and then `translate(image, auxiliary_data)` for every
-simulated scene, exactly as [`translate_cli.py`](translate_cli.py) does. `auxiliary_data`
-holds the scene `stem`, its `label`, and its `canny`, `segmentation`, and `depth` images.
-Each returned image must keep the size and scene content of its input (see Requirements).
+Add any other files your translator needs. The evaluation calls `create_translator(device)`
+once and then `translate(image, auxiliary_data)` for every simulated scene, exactly as
+[`translate_cli.py`](translate_cli.py) does. `auxiliary_data` holds the scene `stem`, its
+`label`, and its `canny`, `segmentation`, and `depth` images. Each returned image must keep
+the size and scene content of its input (see Requirements).
 
-Your translator runs with the same environment as Track B systems: an NVIDIA GPU with at
-least 24 GB of memory, 14 GB of RAM, 4 CPU cores, no network access, 2 hours for all
-scenes including model loading, and a read-only file system except `/tmp` with your
-submission folder as working directory. The pre-installed packages and the rules for
-`models.txt` and `requirements.txt` are listed in the
-[Track B README](../track_b/README.md#official-submission). Generation time is measured
-by the evaluation for the whole run, including model loading.
+The withheld scenes include scenes with a real reference image, which are used for the
+realism metrics, and synthetic scenes without one, which are used for failure detection and
+diversity: the ISU system answers the feature questions for your generated image, and a
+feature fails when its answer differs from the scene label. SAM structure is evaluated on
+all scenes.
+
+The rules for the `Dockerfile` and the runtime environment are the same as for Track B, see
+[Docker image](../track_b/README.md#docker-image) and [Runtime](../track_b/README.md#runtime).
+Generation time is measured by the evaluation for the whole run, including model loading.
 
 ### Test your submission locally
 
-Run your translator offline with `translate_cli.py`, then evaluate the result. The
-evaluation needs `simulated/`, `reference/`, and `labels/` in the folder, as created by
-the starter notebook. From the repository root:
+From the repository root, build your image and translate the first 80 scenes of the public
+dataset with the restrictions of the official evaluation: 60 scenes with a real reference
+image and 20 without. Without an NVIDIA GPU, leave out `--gpus all` and add `--device cpu`:
 
 ```bash
-HF_HUB_OFFLINE=1 python track_a/translate_cli.py --translator-dir track_a/submissions/<team_name> \
-    --data-dir data --output track_a/submissions/<team_name> --limit 10
+TEAM=track_a/submissions/<team_name>
+docker build -t isu-track-a "$TEAM"
+docker run --rm --gpus all --network none --read-only --tmpfs /tmp --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp -e HF_HUB_OFFLINE=1 -v "$PWD:/starterkit:ro" -v "$PWD/data:/data:ro" \
+    -v "$PWD/$TEAM:/submission:ro" -v "$PWD/$TEAM:/out" \
+    --workdir /submission --entrypoint python isu-track-a \
+    /starterkit/track_a/translate_cli.py --translator-dir /submission --data-dir /data --output /out --limit 80
+```
+
+This writes `generated/` and `generation_times.json` into your folder. Add the matching
+simulated images, labels, and the real images, then evaluate:
+
+```bash
+mkdir -p "$TEAM"/simulated "$TEAM"/labels "$TEAM"/reference && cp data/real/*_real.jpg "$TEAM"/reference/
+for image in "$TEAM"/generated/*.png; do
+    stem=$(basename "$image" .png)
+    cp "data/images/${stem}_sim.png" "$TEAM"/simulated/ && cp "data/labels/${stem}.json" "$TEAM"/labels/
+done
 cd track_a
-python evaluator_cli.py evaluate --submission-path submissions/<team_name> --output report.json --failure-model qwen
+python evaluator_cli.py evaluate --submission-path "../$TEAM" --output report.json --failure-model qwen
 ```
 
 Then, from the repository root, encrypt the folder and commit the result as described in
