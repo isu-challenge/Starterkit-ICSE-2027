@@ -12,10 +12,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
 from evaluator_cli import EvaluatorTrackB, ISUSystem
+
+# Dataset downloaded by the starter notebooks to data/ at the repository root.
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 class CLIPBasedISUSystem(ISUSystem):
@@ -67,7 +71,7 @@ class CLIPBasedISUSystem(ISUSystem):
         predictions = {}
 
         # Encode image
-        with self.processor.image_processor.image_mean:
+        with torch.no_grad():
             inputs = self.processor(images=image, return_tensors="pt").to(self.device)
             image_features = self.model.get_image_features(**inputs)
 
@@ -143,7 +147,7 @@ def example_evaluate_custom_system():
 
     # Create evaluator
     evaluator = EvaluatorTrackB(
-        data_dir=Path("data"),
+        data_dir=DATA_DIR,
         isu_system=system,
         image_kind="synthetic",  # Test on synthetic first
         output_path=Path("track_b_evaluation_output") / "custom_system.json",
@@ -173,7 +177,7 @@ def example_ensemble_evaluation():
 
     # Evaluate ensemble
     evaluator = EvaluatorTrackB(
-        data_dir=Path("data"),
+        data_dir=DATA_DIR,
         isu_system=ensemble,
         output_path=Path("track_b_evaluation_output") / "ensemble.json",
     )

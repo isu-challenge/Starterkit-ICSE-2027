@@ -78,7 +78,7 @@ cd track_a
 python evaluator_cli.py evaluate --submission-path submissions/<team_name> --output report.json
 ```
 
-See [`track_a/evaluator_cli.py`](track_a/evaluator_cli.py) for CLI interface. Implementation example in [`track_a/example_custom_translator.py`](track_a/example_custom_translator.py).
+See [`track_a/evaluator_cli.py`](track_a/evaluator_cli.py) for CLI interface. Implementation example in [`track_a/test/example_custom_translator.py`](track_a/test/example_custom_translator.py).
 
 **Additional resources** in [`track_a/`](track_a/): [Track A README](track_a/README.md), [participant starter notebook](track_a/participant_starter.ipynb), [challenge evaluator notebook](track_a/track_a_challenge_evaluator.ipynb), [metrics implementation](track_a/track_a_metrics.py), and [image metrics utilities](track_a/image_metrics_utils.py).
 
@@ -97,7 +97,7 @@ Systems should process visual in-car scenes and return predictions in the prescr
 Download data from [Hugging Face](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset), then evaluate an ISU system via CLI:
 ```bash
 cd track_b
-python evaluator_cli.py evaluate --data-dir data --output report.json
+python evaluator_cli.py evaluate --data-dir ../data --output report.json
 ```
 
 Implement a custom ISU system by extending `ISUSystem`:
@@ -110,7 +110,7 @@ class MyISUSystem(ISUSystem):
     def name(self):
         return "MySystem"
 
-evaluator = EvaluatorTrackB(data_dir="data", isu_system=MyISUSystem())
+evaluator = EvaluatorTrackB(data_dir="../data", isu_system=MyISUSystem())
 report = evaluator.evaluate()
 ```
 
@@ -198,7 +198,7 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
 ### Submitting via pull request
 
 1. Register your team with the GitHub usernames of all members (see [Participation](#-participation)). You receive a team id, for example `team-07`.
-2. Fork this repository and add your submission under `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`.
+2. Fork this repository and add your submission under `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`. Templates with instructions are in [`sample_submission/`](sample_submission/README.md).
 3. Open a pull request against `main`. A pull request may only change files in your own team folder and for one track.
 4. The submission is evaluated automatically on the organizers' GPU runner. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Pushing a new commit to the pull request starts a new evaluation. Submission pull requests are not merged.
 
@@ -245,7 +245,7 @@ def create_system(device):
 
 `requirements.txt` lists additional PyPI packages, one per line with an optional version, for example `timm==1.0.15`. They are installed as binary wheels only; pip options, URLs, and local paths are not accepted.
 
-**Test your submission locally** before opening the pull request. This runs your system as the official evaluation does: offline, from your submission folder, on the data in `track_b/data`. Download the models from `models.txt` once beforehand, and define `set_prompt(prompt)` even if your system ignores the prompt.
+**Test your submission locally** before opening the pull request. This runs your system as the official evaluation does: offline, from your submission folder, on the dataset in `data/` at the repository root (where the starter notebooks download it). Download the models from `models.txt` once beforehand, and define `set_prompt(prompt)` even if your system ignores the prompt.
 
 ```bash
 cd submissions/<team_id>/track_b
@@ -255,7 +255,7 @@ sys.path[:0] = [".", "../../../track_b"]
 from evaluator_cli import EvaluatorTrackB
 from system import create_system
 
-EvaluatorTrackB(data_dir="../../../track_b/data", isu_system=create_system("cuda"),
+EvaluatorTrackB(data_dir="../../../data", isu_system=create_system("cuda"),
                 output_path="../../../track_b/track_b_evaluation_output/report.json").evaluate()
 EOF
 ```

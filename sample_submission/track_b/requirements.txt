@@ -1,0 +1,4 @@
+# Extra PyPI packages, one per line with an optional version, installed as binary wheels.
+# torch stays at 2.6.0 (CUDA 12.4); pip options, URLs, and local paths are not accepted.
+# Example:
+# timm==1.0.15
