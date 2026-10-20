@@ -198,74 +198,18 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
 ### Submitting via pull request
 
 1. Register your team with the GitHub usernames of all members (see [Participation](#-participation)). You receive a team id, for example `team-07`.
-2. Fork this repository and prepare your submission in `private/track_a/` or `private/track_b/`, a folder that Git ignores. Templates with instructions are in [`sample_submission/`](sample_submission/README.md).
-3. Encrypt it into your team folder. Pull requests are public; only the organizers' evaluation runner can decrypt the result. This needs the [age](https://github.com/FiloSottile/age#installation) tool (`brew install age`, `sudo apt install age`, or `winget install FiloSottile.age`):
+2. Fork this repository, then prepare and test your submission as described under "Official Submission" in the [Track A README](track_a/README.md#official-submission) or the [Track B README](track_b/README.md#official-submission). Templates are in [`sample_submission/`](sample_submission/).
+3. Pull requests are public, so encrypt your submission with the organizers' public key. Install [age](https://github.com/FiloSottile/age#installation) (`brew install age`, `sudo apt install age`, or `winget install FiloSottile.age`) and run from the repository root, for example:
 
    ```bash
-   python tools/encrypt_submission.py --source private/track_b --output submissions/<team_id>/track_b
+   python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
    ```
 
-   It writes `submission.tar.age.000`, `.001`, … into the team folder. Commit only these parts.
-4. Open a pull request against `main`. A pull request may only change files in your own team folder and for one track.
-5. The submission is evaluated automatically on the organizers' GPU runner. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Pushing a new commit to the pull request starts a new evaluation. Submission pull requests are not merged.
+   This writes `submission.tar.age.000`, `.001`, … into your team folder. Commit only these files.
+4. Open a pull request against `main` that changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track per pull request.
+5. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Every push to the pull request starts a new evaluation; pull requests are not merged.
 
-Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB and 20,000 files before encryption; the encryption tool splits it into parts below GitHub's 100 MB file limit. Final latency and generation-time measurements are taken on the predefined `g6e.2xlarge` instance.
-
-**Track A layout.** The organizers add the simulated images, reference images, and labels; do not include them.
-
-```text
-private/track_a/            encrypted into submissions/<team_id>/track_a/
-├── generated/              One RGB image per simulated scene, named <stem>.png
-├── generation_times.json   {"total_seconds": 12.0, "hardware": "..."}
-└── code/                   Code used to generate the images
-```
-
-`generated/` must contain exactly one image per simulated scene of the evaluation set, with the same width and height, named after the scene without `_sim` (`sample_0001.png` for `sample_0001_sim.png`). Sub-folders and other files in `generated/` are rejected.
-
-**Track B layout.** The system receives only RGB images and runs without network access.
-
-```text
-private/track_b/       encrypted into submissions/<team_id>/track_b/
-├── system.py          Defines create_system(device) and returns your ISU system
-├── requirements.txt   Optional extra pip packages; torch is fixed to 2.6.0 with CUDA 12.4
-└── models.txt         Optional public Hugging Face models to download before evaluation,
-                       one per line: <repo_id>[@<revision>]
-```
-
-`create_system(device)` must return an object with `predict(image)` and `name()` as defined by `ISUSystem` in [`track_b/evaluator_cli.py`](track_b/evaluator_cli.py); `set_prompt(prompt)` is called first if your system defines it. The `track_b/` folder is importable, so the reference baseline is the following `system.py` together with `Qwen/Qwen2.5-VL-3B-Instruct` in `models.txt`:
-
-```python
-from evaluator_cli import QwenISUSystem
-
-
-def create_system(device):
-    return QwenISUSystem(device=device)
-```
-
-**Track B runtime.** Your system runs in a container with:
-
-- an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
-- no network access, and a time limit of 2 hours for all evaluation images, including model loading;
-- a read-only file system except `/tmp`; the working directory is your submission folder, so files in it can be opened with relative paths;
-- Python 3.11, `torch` 2.6.0 (CUDA 12.4), `transformers` 4.x, `accelerate`, `torchvision`, `numpy`, `Pillow`, `scipy`, `scikit-learn`, `scikit-image`, `pandas`, and `einops`;
-- the models listed in `models.txt` in the default Hugging Face cache: load them with `from_pretrained("<repo_id>")`, passing the same `revision` if you pinned one, and without `cache_dir`. Other weights are files in your submission folder, which stay private because the folder is encrypted.
-
-`requirements.txt` lists additional PyPI packages, one per line with an optional version, for example `timm==1.0.15`. They are installed as binary wheels only; pip options, URLs, and local paths are not accepted.
-
-**Test your submission locally** before opening the pull request. This runs your system as the official evaluation does: offline, from your submission folder, on the dataset in `data/` at the repository root (where the starter notebooks download it). Download the models from `models.txt` once beforehand, and define `set_prompt(prompt)` even if your system ignores the prompt.
-
-```bash
-cd private/track_b
-HF_HUB_OFFLINE=1 python - <<'EOF'
-import sys
-sys.path[:0] = [".", "../../track_b"]
-from evaluator_cli import EvaluatorTrackB
-from system import create_system
-
-EvaluatorTrackB(data_dir="../../data", isu_system=create_system("cuda"),
-                output_path="../../track_b/track_b_evaluation_output/report.json").evaluate()
-EOF
-```
+Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption.
 
 ## 🗓️ Timeline
 

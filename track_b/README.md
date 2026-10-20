@@ -115,3 +115,71 @@ achieved a high accuracy score.
 The first Qwen run may download `Qwen/Qwen2.5-VL-3B-Instruct` from Hugging
 Face. Install dependencies from `requirements.txt`. CPU execution is
 supported for a functional smoke test but is considerably slower.
+
+## Official Submission
+
+The official evaluation runs your system on a withheld set of real and synthetic
+images. Prepare it in a folder of its own, for example `submissions/<team_name>/` in
+this directory (ignored by Git); [`sample_submission/track_b/`](../sample_submission/track_b/)
+is a template:
+
+```text
+system.py          defines create_system(device), which returns your ISUSystem
+models.txt         optional: public Hugging Face models your system loads, <repo_id>[@<revision>]
+requirements.txt   optional: extra PyPI packages, one per line, e.g. timm==1.0.15
+```
+
+Add any other files your system needs, such as weights. The evaluation calls
+`create_system(device)` once, `set_prompt(prompt)` once if your system defines it,
+and then `predict(image)` for every image. The `track_b/` folder is importable, so
+the reference baseline is this `system.py` with `Qwen/Qwen2.5-VL-3B-Instruct` in
+`models.txt`:
+
+```python
+from evaluator_cli import QwenISUSystem
+
+
+def create_system(device):
+    return QwenISUSystem(device=device)
+```
+
+Your system runs with:
+
+- an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
+- no network access, and 2 hours for all images, including model loading;
+- a read-only file system except `/tmp`; the working directory is your submission folder;
+- Python 3.11, `torch` 2.6.0 (CUDA 12.4), `transformers` 4.x, `accelerate`,
+  `torchvision`, `numpy`, `Pillow`, `scipy`, `scikit-learn`, `scikit-image`, `pandas`,
+  and `einops`;
+- the models from `models.txt` in the default Hugging Face cache: load them with
+  `from_pretrained("<repo_id>")`, with the same `revision` if you pinned one.
+
+Packages from `requirements.txt` are installed from PyPI as binary wheels; pip
+options, URLs, and local paths are not accepted, and `torch` stays at 2.6.0. Latency
+is measured again on the predefined `g6e.2xlarge` instance for the final evaluation.
+
+### Test your submission locally
+
+Run your system offline from its folder, as the official evaluation does. Download the
+models from `models.txt` once beforehand, and define `set_prompt(prompt)` even if
+your system ignores the prompt:
+
+```bash
+cd track_b/submissions/<team_name>
+HF_HUB_OFFLINE=1 python - <<'EOF'
+import sys
+sys.path[:0] = [".", "../.."]
+from evaluator_cli import EvaluatorTrackB
+from system import create_system
+
+EvaluatorTrackB(data_dir="../../../data", isu_system=create_system("cuda"),
+                output_path="../../track_b_evaluation_output/report.json").evaluate()
+EOF
+```
+
+Then, from the repository root, encrypt the folder and commit the result as described
+in [Submitting via pull request](../README.md#submitting-via-pull-request):
+
+```bash
+python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
+```

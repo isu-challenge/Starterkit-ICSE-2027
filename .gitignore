@@ -13,7 +13,4 @@ track_b/submissions/*
 
 **/__pycache__/**
 
-# Plaintext submissions; commit only the encrypted parts from tools/encrypt_submission.py
-/private/
-
 **/test/test_output/**

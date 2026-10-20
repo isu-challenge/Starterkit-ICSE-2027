@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Encrypt an ISU-Challenge submission for its pull request.
 
-Pull requests are public, so a submission is committed encrypted with the organizers'
-age public key; only the evaluation runner can decrypt it. Keep the plaintext submission
-outside submissions/, for example in private/track_b/ (ignored by Git), and run from the
-repository root:
+Pull requests are public, so submissions are committed encrypted with the organizers'
+public key. Run from the repository root with your local submission folder, e.g.:
 
-    python tools/encrypt_submission.py --source private/track_b --output submissions/<team_id>/track_b
+    python tools/encrypt_submission.py --source track_a/submissions/<team_name> --output submissions/<team_id>/track_a
+    python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
 
-This writes submission.tar.age.000, .001, ... (each below 90 MiB) into the output folder,
-replacing older parts. Commit only these files.
+For Track A only generated/, generation_times.json, and code/ are included. The output
+folder receives submission.tar.age.000, .001, ... (each below 90 MiB), replacing older
+parts; commit only these files.
 
-Requires the age tool (https://github.com/FiloSottile/age#installation):
-macOS `brew install age`, Ubuntu/Debian `sudo apt install age`, Windows `winget install FiloSottile.age`.
+Requires age (https://github.com/FiloSottile/age#installation): `brew install age`,
+`sudo apt install age`, or `winget install FiloSottile.age`.
 """
 
 from __future__ import annotations
@@ -29,21 +29,24 @@ from typing import NoReturn
 # Public key of the organizers. Submissions encrypted with another key cannot be evaluated.
 ORGANIZER_PUBLIC_KEY = "age126thdfpyav5wwrffmgnl08lukw5hmedan0auqm966x44up2kwf3qzfx329"
 PART_BYTES = 90 * 1024 * 1024
-# The runner accepts 2048 MB of parts; this leaves room for tar headers and encryption overhead.
 MAX_BYTES = 2000 * 1024 * 1024
 MAX_FILES = 20_000
 SKIPPED = {".DS_Store", "Thumbs.db", "__pycache__", ".ipynb_checkpoints", ".git"}
 TRACKS = ("track_a", "track_b")
+# Track A: the evaluation provides simulated/, reference/, and labels/ itself.
+TRACK_A_ENTRIES = ("generated", "generation_times.json", "code")
 
 
 def fail(message: str) -> NoReturn:
     sys.exit(f"error: {message}")
 
 
-def collect_files(source: Path) -> list[Path]:
+def collect_files(source: Path, track: str) -> list[Path]:
     files = []
     for path in sorted(source.rglob("*")):
         relative = path.relative_to(source)
+        if track == "track_a" and relative.parts[0] not in TRACK_A_ENTRIES:
+            continue
         if any(part in SKIPPED for part in relative.parts) or path.suffix == ".pyc":
             continue
         if path.is_symlink():
@@ -71,23 +74,22 @@ def normalized(info: tarfile.TarInfo) -> tarfile.TarInfo:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--source", type=Path, required=True, help="Plaintext submission folder, e.g. private/track_b.")
+    parser.add_argument("--source", type=Path, required=True,
+                        help="Local submission folder, e.g. track_b/submissions/<team_name>.")
     parser.add_argument("--output", type=Path, required=True, help="Team folder, e.g. submissions/team-07/track_b.")
     parser.add_argument("--recipient", default=ORGANIZER_PUBLIC_KEY, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     source, output = args.source.resolve(), args.output.resolve()
-    if args.recipient.startswith("age1REPLACE"):
-        fail("the organizer public key is not published yet; see the README")
     if output.name not in TRACKS or output.parent.parent.name != "submissions":
         fail("--output must be submissions/<team_id>/track_a or submissions/<team_id>/track_b")
     if not source.is_dir():
         fail(f"source folder not found: {args.source}")
     if source == output.parent.parent or output.parent.parent in source.parents:
-        fail("keep the plaintext submission outside submissions/, e.g. in private/ (ignored by Git)")
+        fail("--source must be your local submission folder, not a folder inside submissions/")
     check_layout(output.name, source)
 
-    files = collect_files(source)
+    files = collect_files(source, output.name)
     total = sum(path.stat().st_size for path in files)
     if not files:
         fail(f"{args.source} contains no files")
@@ -97,7 +99,7 @@ def main() -> None:
     if output.is_dir():
         others = [path for path in output.rglob("*") if path.is_file() and not path.name.startswith("submission.tar.age.")]
         if others:
-            fail(f"{args.output} may only contain the encrypted parts; move these files elsewhere: "
+            fail(f"{args.output} may only contain the encrypted parts; remove these files: "
                  + ", ".join(str(path.relative_to(output)) for path in others[:5]))
 
     with tempfile.TemporaryDirectory(prefix="isu-submission-") as temp:

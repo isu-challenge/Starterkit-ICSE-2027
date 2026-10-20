@@ -65,7 +65,7 @@ submission folder (next to `generated/`, not inside it):
 ## Generate Images
 
 Use `participant_starter.ipynb` or implement a `Translator` in
-`example_custom_translator.py`. The translator receives a simulated RGB image
+`test/example_custom_translator.py`. The translator receives a simulated RGB image
 and must return one RGB generated image with the same scene structure.
 
 ## Evaluate a Submission
@@ -118,3 +118,27 @@ python -m pytest test/test_evaluator_example.py -v -s
 The test writes the generated example submission and report under
 `test/test_output/example/`. It loads SAM, VGG16, CLIP, and Qwen2.5-VL, so it
 requires the model dependencies and may download weights on the first run.
+
+## Official Submission
+
+The official evaluation provides the simulated images, real reference images, and
+labels of a withheld evaluation set itself. You submit only:
+
+```text
+generated/              one image per simulated scene of the evaluation set
+generation_times.json   generation timing (see above)
+code/                   optional: the code used to generate the images
+```
+
+Each generated image must have the same width and height as its simulated scene and
+be named after it without `_sim` (`sample_0001.png` for `sample_0001_sim.png`).
+Sub-folders and other files in `generated/` are not accepted. Generation time is
+measured again on the predefined `g6e.2xlarge` instance for the final evaluation.
+
+From the repository root, encrypt these files from your local submission folder (the
+tool picks them out) and commit the result as described in
+[Submitting via pull request](../README.md#submitting-via-pull-request):
+
+```bash
+python tools/encrypt_submission.py --source track_a/submissions/<team_name> --output submissions/<team_id>/track_a
+```
