@@ -33,6 +33,8 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           BASE_REPOSITORY: ${{ github.repository }}
           RESULT_DIR: ${{ runner.temp }}/isu-result
+          # age identity that decrypts the submission parts (environment secret of "evaluation").
+          SUBMISSION_AGE_KEY: ${{ secrets.SUBMISSION_AGE_KEY }}
         run: python3 /srv/isu/eval/bin/evaluate_pr.py
 
       - name: Upload result

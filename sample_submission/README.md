@@ -1,8 +1,9 @@
 # Sample submission
 
-Templates for an official submission. Copy the folder of your track to
-`submissions/<team_id>/` (you receive the team id with your registration), replace the
-`TODO` parts, test locally, and open a pull request against `main`.
+Templates for an official submission. Copy the folder of your track to `private/` (ignored
+by Git), replace the `TODO` parts, and test locally. Then encrypt it into your team folder
+`submissions/<team_id>/` (you receive the team id with your registration) and open a pull
+request against `main`.
 
 ```text
 sample_submission/
@@ -18,16 +19,26 @@ sample_submission/
 
 General rules:
 
+- Pull requests are public, so only the encrypted submission is committed. With the
+  [age](https://github.com/FiloSottile/age#installation) tool installed, run from the
+  repository root:
+
+  ```bash
+  python tools/encrypt_submission.py --source private/track_b --output submissions/<team_id>/track_b
+  ```
+
+  It writes `submission.tar.age.000`, `.001`, ... into the team folder; commit only these.
+  Run it again after every change to your submission.
 - One pull request per track. It may only change files in `submissions/<team_id>/track_a/`
   or `submissions/<team_id>/track_b/`.
-- Each file must be below 100 MB and the submission below 2 GB. Git LFS is not supported.
+- A submission may contain up to 2 GB and 20,000 files before encryption.
 - Every evaluation that starts counts toward the daily limit per track, including one
   cancelled by a newer push.
 - The result is posted as a comment on the pull request and published on the leaderboard.
 
 ## Track A
 
-1. Copy the template: `cp -r sample_submission/track_a submissions/<team_id>/track_a`.
+1. Copy the template: `mkdir -p private && cp -r sample_submission/track_a private/track_a`.
 2. Implement `MyTranslator.translate()` in `code/generate.py`. It subclasses `Translator`
    from [`track_a/evaluator_cli.py`](../track_a/evaluator_cli.py) and receives one simulated
    RGB image plus `auxiliary_data` with the scene label and, when downloaded, its Canny,
@@ -39,13 +50,14 @@ General rules:
    (`data/` at the repository root, as downloaded by the starter notebooks):
 
    ```bash
-   python submissions/<team_id>/track_a/code/generate.py --data-dir data \
-       --output submissions/<team_id>/track_a --hardware "1x NVIDIA RTX 4090"
+   python private/track_a/code/generate.py --data-dir data \
+       --output private/track_a --hardware "1x NVIDIA RTX 4090"
    ```
 
    This writes `generated/<stem>.png` for every `images/<stem>_sim.png` and
    `generation_times.json` with the time spent in `translate()`. Add `--limit 5` for a
    quick test.
+4. Encrypt it: `python tools/encrypt_submission.py --source private/track_a --output submissions/<team_id>/track_a`.
 
 The evaluation checks that `generated/` contains exactly one image per simulated scene,
 with the same width and height, named without `_sim` (`sample_00218.png` for
@@ -54,12 +66,12 @@ by the evaluation; it documents how the images were produced.
 
 To score your images locally, the evaluator needs a folder that also contains the
 simulated images, labels, and real reference images. Assemble it in
-`track_a/submissions/` (ignored by Git, so it is never part of your pull request), as
-the [starter notebook](../track_a/participant_starter.ipynb) does:
+`track_a/submissions/` (ignored by Git), as the
+[starter notebook](../track_a/participant_starter.ipynb) does:
 
 ```bash
 L=track_a/submissions/local && mkdir -p $L/simulated $L/labels $L/reference
-cp -r submissions/<team_id>/track_a/generated submissions/<team_id>/track_a/generation_times.json $L/
+cp -r private/track_a/generated private/track_a/generation_times.json $L/
 for f in $L/generated/*.png; do s=$(basename "$f" .png)
   cp data/images/${s}_sim.png $L/simulated/; cp data/labels/${s}.json data/labels/${s}_label.json $L/labels/ 2>/dev/null
 done
@@ -72,7 +84,7 @@ the same pipeline end to end with `AppearanceTranslator`.
 
 ## Track B
 
-1. Copy the template: `cp -r sample_submission/track_b submissions/<team_id>/track_b`.
+1. Copy the template: `mkdir -p private && cp -r sample_submission/track_b private/track_b`.
 2. Implement `MyISUSystem` in `system.py`, a subclass of `ISUSystem` from
    [`track_b/evaluator_cli.py`](../track_b/evaluator_cli.py): load your model in `__init__`
    and return one answer per feature in `predict(image)`. The simplest valid submission is
@@ -80,7 +92,9 @@ the same pipeline end to end with `AppearanceTranslator`.
    in `evaluator_cli.py` and the CLIP and ensemble systems in
    [`track_b/example_custom_system.py`](../track_b/example_custom_system.py).
 3. List every Hugging Face model your system loads in `models.txt`, and extra PyPI packages
-   in `requirements.txt`. Remove lines you do not need.
+   in `requirements.txt`. Remove lines you do not need. Your own weights can be files in the
+   folder; they stay private because the folder is encrypted.
+4. Encrypt it: `python tools/encrypt_submission.py --source private/track_b --output submissions/<team_id>/track_b`.
 
 Your system runs in a container with an NVIDIA GPU (at least 24 GB), 14 GB of RAM, 4 CPU
 cores, no network access, and a 2-hour limit for all evaluation images. The file system is
@@ -98,15 +112,15 @@ Test the system offline, as the official evaluation runs it, on the dataset in `
 the repository root (download the models from `models.txt` once beforehand):
 
 ```bash
-cd submissions/<team_id>/track_b
+cd private/track_b
 HF_HUB_OFFLINE=1 python - <<'EOF'
 import sys
-sys.path[:0] = [".", "../../../track_b"]
+sys.path[:0] = [".", "../../track_b"]
 from evaluator_cli import EvaluatorTrackB
 from system import create_system
 
-EvaluatorTrackB(data_dir="../../../data", isu_system=create_system("cuda"),
-                output_path="../../../track_b/track_b_evaluation_output/report.json").evaluate()
+EvaluatorTrackB(data_dir="../../data", isu_system=create_system("cuda"),
+                output_path="../../track_b/track_b_evaluation_output/report.json").evaluate()
 EOF
 ```
 

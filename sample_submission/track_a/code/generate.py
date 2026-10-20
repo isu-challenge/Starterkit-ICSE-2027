@@ -8,9 +8,12 @@ an official submission:
 The dataset folder has the starter-kit layout (data/ at the repository root): images/
 with <stem>_sim.png, labels/, and optionally canny/, instance_seg/, and depth/png/.
 
-Usage, from the repository root:
-    python submissions/<team_id>/track_a/code/generate.py --data-dir data \
-        --output submissions/<team_id>/track_a --hardware "1x NVIDIA RTX 4090"
+Usage, from the repository root, with the template copied to private/track_a:
+    python private/track_a/code/generate.py --data-dir data \
+        --output private/track_a --hardware "1x NVIDIA RTX 4090"
+
+Then encrypt the folder for the pull request:
+    python tools/encrypt_submission.py --source private/track_a --output submissions/<team_id>/track_a
 """
 
 from __future__ import annotations
