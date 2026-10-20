@@ -155,12 +155,12 @@ Both tracks use executable, automated evaluation pipelines.
 
 ### 🧪 Track A Metrics
 
-- **Failure rate:** The number of scenes that expose a failure divided by the number of executed scenes, based on feature matching. The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
-- **Realism:** Apply default sim2real gap assessment techqniques [2].
+- **Failure rate:** Based on feature matching, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
+- **Realism:** Apply default sim2real gap assessment techqniques [2], combined into a realism score: the mean relative improvement of the generated images over their simulated inputs across the realism metrics, each clipped to [-1, 1].
 - **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
 - **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
 
-Track A results are ranked using Pareto non-dominance sorting across the competition objectives. In case of a tie, a weighted linear combination is used.
+Track A results are ranked using Pareto non-dominance sorting across scene failure rate, feature failure rate, realism score, feature diversity, and generation time. In case of a tie, a weighted linear combination of min-max normalized values is used (failure 0.3, realism 0.4, diversity 0.3).
 
 ### 👁️ Track B Metrics
 
@@ -190,7 +190,7 @@ The competition is organized in connection with A* conference ICSE 2027. The top
 
 Submissions are made as pull requests to this repository and are evaluated automatically on a withheld test set.
 
-- **Track A:** Generated image archive and reproducible generation code.
+- **Track A:** Generation code (a `Translator`), which the organizers run on withheld scenes.
 - **Track B:** Model files, parameters, inference or training code, and predictions in the required JSON format.
 
 Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.

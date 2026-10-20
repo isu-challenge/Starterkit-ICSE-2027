@@ -7,7 +7,8 @@ public key. Run from the repository root with your local submission folder, e.g.
     python tools/encrypt_submission.py --source track_a/submissions/<team_name> --output submissions/<team_id>/track_a
     python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
 
-For Track A only generated/, generation_times.json, and code/ are included. The output
+For Track A, the local evaluation data (simulated/, reference/, labels/, generated/,
+generation_times.json) is left out. The output
 folder receives submission.tar.age.000, .001, ... (each below 90 MiB), replacing older
 parts; commit only these files.
 
@@ -33,8 +34,8 @@ MAX_BYTES = 2000 * 1024 * 1024
 MAX_FILES = 20_000
 SKIPPED = {".DS_Store", "Thumbs.db", "__pycache__", ".ipynb_checkpoints", ".git"}
 TRACKS = ("track_a", "track_b")
-# Track A: the evaluation provides simulated/, reference/, and labels/ itself.
-TRACK_A_ENTRIES = ("generated", "generation_times.json", "code")
+# Track A: local evaluation data that is not part of the submission.
+TRACK_A_EXCLUDED = ("simulated", "reference", "labels", "generated", "generation_times.json")
 
 
 def fail(message: str) -> NoReturn:
@@ -45,7 +46,7 @@ def collect_files(source: Path, track: str) -> list[Path]:
     files = []
     for path in sorted(source.rglob("*")):
         relative = path.relative_to(source)
-        if track == "track_a" and relative.parts[0] not in TRACK_A_ENTRIES:
+        if track == "track_a" and relative.parts[0] in TRACK_A_EXCLUDED:
             continue
         if any(part in SKIPPED for part in relative.parts) or path.suffix == ".pyc":
             continue
@@ -57,11 +58,9 @@ def collect_files(source: Path, track: str) -> list[Path]:
 
 
 def check_layout(track: str, source: Path) -> None:
-    if track == "track_a":
-        if not (source / "generated").is_dir() or not (source / "generation_times.json").is_file():
-            fail(f"a Track A submission needs generated/ and generation_times.json in {source}")
-    elif not (source / "system.py").is_file():
-        fail(f"a Track B submission needs system.py in {source}")
+    entry = "translator.py" if track == "track_a" else "system.py"
+    if not (source / entry).is_file():
+        fail(f"a {track.replace('_', ' ').title()} submission needs {entry} in {source}")
 
 
 def normalized(info: tarfile.TarInfo) -> tarfile.TarInfo:

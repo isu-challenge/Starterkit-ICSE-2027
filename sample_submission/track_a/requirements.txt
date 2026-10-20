@@ -1,0 +1,3 @@
+# Extra PyPI packages, one per line with an optional version (binary wheels only; torch stays at 2.6.0).
+# Example:
+# diffusers==0.35.1

@@ -7,9 +7,9 @@ how to test locally are described under "Official Submission" in the
 
 ```text
 track_a/
-├── generated/              your generated images, one per simulated scene
-├── generation_times.json   total generation time and hardware
-└── code/translate.py       placeholder for your generation code
+├── translator.py           template translator with create_translator(device)
+├── models.txt              Hugging Face models your translator loads
+└── requirements.txt        extra PyPI packages
 track_b/
 ├── system.py               template ISU system with create_system(device)
 ├── models.txt              Hugging Face models your system loads

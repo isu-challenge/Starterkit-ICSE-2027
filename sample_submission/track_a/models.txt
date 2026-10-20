@@ -1,0 +1,3 @@
+# Public Hugging Face models your translator loads, one per line: <repo_id> or <repo_id>@<revision>.
+# Example:
+# stabilityai/stable-diffusion-2-1

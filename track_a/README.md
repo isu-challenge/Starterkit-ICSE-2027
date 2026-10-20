@@ -5,13 +5,13 @@ while preserving the original scene content and geometry.
 
 ## Requirements
 
-- Submit one generated image for every simulated image.
+- Return one generated image for every simulated image.
 - Keep the original width, height, framing, and camera viewpoint.
 - Do not crop, rotate, mirror, add, remove, or move scene objects.
 - Preserve predefined [features](https://isu-challenge.github.io/feature-schema.html)
 - Return RGB images in PNG, JPEG, BMP, or TIFF format. PNG is recommended.
 - Keep filename stems unique and consistent across paired simulated and generated images.
-- Do not include semantic masks, model files, or unrelated metadata in the submission folder.
+- Do not write semantic masks or unrelated metadata into the generated images.
 
 ## Jupyter Notebooks
 
@@ -121,23 +121,47 @@ requires the model dependencies and may download weights on the first run.
 
 ## Official Submission
 
-The official evaluation provides the simulated images, real reference images, and
-labels of a withheld evaluation set itself. You submit only:
+You submit your translator as code, and the official evaluation runs it on withheld
+simulated scenes. Prepare a folder, for example `submissions/<team_name>/` in this
+directory (ignored by Git); [`sample_submission/track_a/`](../sample_submission/track_a/)
+is a template:
 
 ```text
-generated/              one image per simulated scene of the evaluation set
-generation_times.json   generation timing (see above)
-code/                   optional: the code used to generate the images
+translator.py      defines create_translator(device), which returns your Translator
+models.txt         optional: public Hugging Face models your translator loads, <repo_id>[@<revision>]
+requirements.txt   optional: extra PyPI packages, one per line, e.g. diffusers==0.35.1
 ```
 
-Each generated image must have the same width and height as its simulated scene and
-be named after it without `_sim` (`sample_0001.png` for `sample_0001_sim.png`).
-Sub-folders and other files in `generated/` are not accepted. Generation time is
-measured again on the predefined `g6e.2xlarge` instance for the final evaluation.
+Add any other files your translator needs, such as weights. The evaluation calls
+`create_translator(device)` once and then `translate(image, auxiliary_data)` for every
+simulated scene, exactly as [`translate_cli.py`](translate_cli.py) does. `auxiliary_data`
+holds the scene `stem`, its `label`, and its `canny`, `segmentation`, and `depth` images.
+Each returned image must keep the size and scene content of its input (see Requirements).
 
-From the repository root, encrypt these files from your local submission folder (the
-tool picks them out) and commit the result as described in
-[Submitting via pull request](../README.md#submitting-via-pull-request):
+Your translator runs with the same environment as Track B systems: an NVIDIA GPU with at
+least 24 GB of memory, 14 GB of RAM, 4 CPU cores, no network access, 2 hours for all
+scenes including model loading, and a read-only file system except `/tmp` with your
+submission folder as working directory. The pre-installed packages and the rules for
+`models.txt` and `requirements.txt` are listed in the
+[Track B README](../track_b/README.md#official-submission). Generation time is measured
+by the evaluation for the whole run, including model loading.
+
+### Test your submission locally
+
+Run your translator offline with `translate_cli.py`, then evaluate the result. The
+evaluation needs `simulated/`, `reference/`, and `labels/` in the folder, as created by
+the starter notebook. From the repository root:
+
+```bash
+HF_HUB_OFFLINE=1 python track_a/translate_cli.py --translator-dir track_a/submissions/<team_name> \
+    --data-dir data --output track_a/submissions/<team_name> --limit 10
+cd track_a
+python evaluator_cli.py evaluate --submission-path submissions/<team_name> --output report.json --failure-model qwen
+```
+
+Then, from the repository root, encrypt the folder and commit the result as described in
+[Submitting via pull request](../README.md#submitting-via-pull-request). The tool leaves
+out `simulated/`, `reference/`, `labels/`, `generated/`, and `generation_times.json`:
 
 ```bash
 python tools/encrypt_submission.py --source track_a/submissions/<team_name> --output submissions/<team_id>/track_a
