@@ -1,0 +1,14 @@
+# Dependencies of the track_a/ and track_b/ evaluators (without notebook tooling).
+numpy
+Pillow
+scipy
+scikit-image
+scikit-learn
+pandas
+torchvision
+torchmetrics
+torch-fidelity
+transformers>=4.57,<5
+accelerate
+einops
+huggingface_hub

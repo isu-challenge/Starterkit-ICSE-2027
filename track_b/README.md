@@ -115,3 +115,95 @@ achieved a high accuracy score.
 The first Qwen run may download `Qwen/Qwen2.5-VL-3B-Instruct` from Hugging
 Face. Install dependencies from `requirements.txt`. CPU execution is
 supported for a functional smoke test but is considerably slower.
+
+## Official Submission
+
+The official evaluation runs your system in a Docker image that you define, on a withheld
+set of real and synthetic images. Prepare it in a folder of its own, for example
+`submissions/<team_name>/` in this directory (ignored by Git);
+[`sample_submission/track_b/`](../sample_submission/track_b/) is a template:
+
+```text
+system.py          defines create_system(device), which returns your ISUSystem
+Dockerfile         builds the image your system runs in, starting with FROM isu-challenge-base
+```
+
+Add any other files your system needs. The evaluation calls `create_system(device)` once,
+`set_prompt(prompt)` once if your system defines it, and then `predict(image)` for every
+image. The `track_b/` folder is importable, so the reference baseline is this `system.py`
+with `RUN hf download Qwen/Qwen2.5-VL-3B-Instruct` in the `Dockerfile`:
+
+```python
+from evaluator_cli import QwenISUSystem
+
+
+def create_system(device):
+    return QwenISUSystem(device=device)
+```
+
+### Docker image
+
+`isu-challenge-base` is built from [`docker/`](../docker/) and contains Python 3.11,
+`torch` 2.6.0 (CUDA 12.4), `transformers` 4.x, and the other evaluator dependencies listed
+in [`docker/requirements.txt`](../docker/requirements.txt). Build it once from the
+repository root; the organizers build it from the same files:
+
+```bash
+docker build -t isu-challenge-base docker/
+```
+
+Your submission folder is the build context of your `Dockerfile`:
+
+- The last stage must start with `FROM isu-challenge-base`.
+- Install packages with `RUN pip install ...`. The evaluation code runs in your image as
+  well, so keep `torch` and the packages of the base image working.
+- The evaluation has no network access, so download models while the image is built, for
+  example `RUN hf download <repo_id>` into the Hugging Face cache of the image, and add
+  fine-tuned weights from your folder with `COPY`. Larger weights than the 2 GB submission
+  limit can be downloaded during the build as well.
+- The build has internet access, must finish within 30 minutes, and the image may be at
+  most 40 GB, including the base image.
+
+### Runtime
+
+Your system runs in your image with:
+
+- an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
+- no network access, and 2 hours for all images, including model loading;
+- an unprivileged user and a read-only file system except `/tmp`, so files in the image
+  must be readable by all users;
+- your submission folder mounted read-only at `/submission`, the working directory;
+- the evaluation's own command: the `ENTRYPOINT` and `CMD` of your image are ignored.
+
+Latency is measured again on the predefined `g6e.2xlarge` instance for the final evaluation.
+
+### Test your submission locally
+
+From the repository root, build your image and run the evaluator in it with the
+restrictions of the official evaluation. Define `set_prompt(prompt)` even if your system
+ignores the prompt, as this evaluator calls it. Without an NVIDIA GPU, leave out
+`--gpus all` and use `create_system("cpu")`:
+
+```bash
+docker build -t isu-track-b track_b/submissions/<team_name>
+mkdir -p track_b/track_b_evaluation_output
+docker run --rm -i --gpus all --network none --read-only --tmpfs /tmp --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp -e HF_HUB_OFFLINE=1 -v "$PWD:/starterkit:ro" -v "$PWD/data:/data:ro" \
+    -v "$PWD/track_b/submissions/<team_name>:/submission:ro" \
+    -v "$PWD/track_b/track_b_evaluation_output:/out" \
+    --workdir /submission --entrypoint python isu-track-b - <<'EOF'
+import sys
+sys.path[:0] = ["/submission", "/starterkit/track_b"]
+from evaluator_cli import EvaluatorTrackB
+from system import create_system
+
+EvaluatorTrackB(data_dir="/data", isu_system=create_system("cuda"), output_path="/out/report.json").evaluate()
+EOF
+```
+
+Then, from the repository root, encrypt the folder and commit the result as described
+in [Submitting via pull request](../README.md#submitting-via-pull-request):
+
+```bash
+python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
+```
