@@ -20,6 +20,7 @@ jobs:
       cancel-in-progress: true
     outputs:
       status: ${{ steps.evaluate.outputs.status }}
+      publish: ${{ steps.evaluate.outputs.publish }}
     steps:
       - name: Run sandboxed evaluation
         id: evaluate
@@ -52,7 +53,8 @@ jobs:
   publish:
     name: Publish to leaderboard
     needs: evaluate
-    if: needs.evaluate.outputs.status == 'ok'
+    # Organizer test teams are registered with "publish": false and never reach the leaderboard.
+    if: needs.evaluate.outputs.status == 'ok' && needs.evaluate.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     environment: leaderboard
     permissions: {}
@@ -85,6 +87,7 @@ jobs:
           track = str(result.get("track", ""))
           commit = str(result.get("commit", ""))
           if (result.get("status") != "ok"
+                  or result.get("publish") is not True
                   or not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,38}", team_id)
                   or track not in ("track_a", "track_b")
                   or not re.fullmatch(r"[0-9a-f]{40}", commit)):
@@ -190,9 +193,12 @@ jobs:
                   if result.get("efficiency_self_reported"):
                       lines += ["", "Generation time comes from your `generation_times.json` and is "
                                     "re-measured for the final evaluation."]
-                  published = os.environ.get("PUBLISH_RESULT") == "success"
-                  lines += ["", "Published to the leaderboard." if published else
-                            "The leaderboard update failed; please contact the organizers."]
+                  if result.get("publish") is False:
+                      lines += ["", "Organizer test run: not published to the leaderboard."]
+                  else:
+                      published = os.environ.get("PUBLISH_RESULT") == "success"
+                      lines += ["", "Published to the leaderboard." if published else
+                                "The leaderboard update failed; please contact the organizers."]
               lines += ["", f"Evaluated on {result.get('hardware', 'unknown hardware')} with evaluator "
                             f"`{str(result.get('evaluator_ref', ''))[:12]}`."]
               Path("comment.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
