@@ -19,8 +19,8 @@ To get familiar with the task, run the two notebooks in this order:
 
 1. [`participant_starter.ipynb`](participant_starter.ipynb) downloads the
    dataset, lets you browse the scenes and their auxiliary channels,
-   implements `translate(...)`, runs it on every scene, and writes the
-   submission folder `submissions/<team_name>/` including
+   implements `translate(...)`, runs it on the 30 scenes with a real photo, and
+   writes the submission folder `submissions/<team_name>/` including
    `generation_times.json`.
 2. [`track_a_evaluator.ipynb`](track_a_evaluator.ipynb) scores every
    submission in `submissions/` (SAM structure, realism, failure detection,
@@ -33,7 +33,7 @@ To get familiar with the task, run the two notebooks in this order:
 submissions/your_team_name/
 ├── simulated/       Provided simulated source images
 ├── generated/       Your translated output images
-├── reference/       Provided real target-domain images
+├── reference/       Provided real photos
 ├── labels/          Provided scene-label JSON files
 └── generation_times.json   Generation timing (see below)
 ```
@@ -41,16 +41,17 @@ submissions/your_team_name/
 Example pairing:
 
 ```text
-simulated/sample_0001_sim.png
-generated/sample_0001.png
-reference/sample_0001.jpg
-labels/sample_0001_label.json
+simulated/sample_00001_sim.png
+generated/sample_00001.png
+reference/sample_00001_real.jpg
+labels/sample_00001.json
 ```
 
-Simulated and generated images pair by filename stem. Real images are a target
-distribution and do not need one-to-one filename pairing. Do not rename or
-omit the provided simulated scenes, and do not modify the simulated or real
-folders.
+Simulated images, generated images, real photos, and labels pair by scene stem
+(`sample_00001`), as in the dataset. Only the first 30 scenes
+(`sample_00000` to `sample_00029`) have a real photo; realism and failure
+detection use these scenes. Do not rename or omit the provided simulated
+scenes, and do not modify the simulated or real folders.
 
 Record generation timing in `generation_times.json` at the top level of your
 submission folder (next to `generated/`, not inside it):
@@ -122,8 +123,8 @@ requires the model dependencies and may download weights on the first run.
 ## Official Submission
 
 You submit your translator as code, together with a Docker image that it runs in, and the
-official evaluation runs it on withheld simulated scenes. Prepare a folder, for example
-`submissions/<team_name>/` in this directory (ignored by Git);
+official evaluation runs it on the simulated images of the 30 evaluation scenes. Prepare a
+folder, for example `submissions/<team_name>/` in this directory (ignored by Git);
 [`sample_submission/track_a/`](../sample_submission/track_a/) is a template:
 
 ```text
@@ -137,11 +138,17 @@ once and then `translate(image, auxiliary_data)` for every simulated scene, exac
 `label`, and its `canny`, `segmentation`, and `depth` images. Each returned image must keep
 the size and scene content of its input (see Requirements).
 
-The withheld scenes include scenes with a real reference image, which are used for the
-realism metrics, and synthetic scenes without one, which are used for failure detection and
-diversity: the ISU system answers the feature questions for your generated image, and a
-feature fails when its answer differs from the scene label. SAM structure is evaluated on
-all scenes.
+The evaluation scenes are 30 withheld scenes with a real photo, `sample_00030` to
+`sample_00059`, reconstructed like the 30 paired scenes of the base dataset (`sample_00000` to
+`sample_00029`, the only ones you may use). All Track A metrics use them: realism compares your generated images with
+the real photos; for failure detection, the ISU system answers the feature questions for your
+generated image and for the real photo of the same scene, and a feature fails when the two
+answers differ; SAM structure compares your generated images with the simulated images.
+
+Your translator must translate the simulated scene it receives. Generated images that
+reproduce a real photo (SSIM of 0.75 or more against any real photo, after downscaling) are
+rejected, and reproducing, retrieving, or blending in the real photos in any other way breaks
+the rules and is checked in the manual review.
 
 The rules for the `Dockerfile` and the runtime environment are the same as for Track B, see
 [Docker image](../track_b/README.md#docker-image) and [Runtime](../track_b/README.md#runtime).
@@ -149,9 +156,9 @@ Generation time is measured by the evaluation for the whole run, including model
 
 ### Test your submission locally
 
-From the repository root, build your image and translate the first 80 scenes of the public
-dataset with the restrictions of the official evaluation: 60 scenes with a real reference
-image and 20 without. Without an NVIDIA GPU, leave out `--gpus all` and add `--device cpu`:
+From the repository root, build your image and translate the 30 paired scenes of the base
+dataset (its first 30 scenes) with the restrictions of the official evaluation. Without an
+NVIDIA GPU, leave out `--gpus all` and add `--device cpu`:
 
 ```bash
 TEAM=track_a/submissions/<team_name>
@@ -160,7 +167,7 @@ docker run --rm --gpus all --network none --read-only --tmpfs /tmp --user "$(id 
     -e HOME=/tmp -e HF_HUB_OFFLINE=1 -v "$PWD:/starterkit:ro" -v "$PWD/data:/data:ro" \
     -v "$PWD/$TEAM:/submission:ro" -v "$PWD/$TEAM:/out" \
     --workdir /submission --entrypoint python isu-track-a \
-    /starterkit/track_a/translate_cli.py --translator-dir /submission --data-dir /data --output /out --limit 80
+    /starterkit/track_a/translate_cli.py --translator-dir /submission --data-dir /data --output /out --limit 30
 ```
 
 This writes `generated/` and `generation_times.json` into your folder. Add the matching

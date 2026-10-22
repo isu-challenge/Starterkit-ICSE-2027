@@ -32,48 +32,6 @@ from track_b_evaluator import (
 )
 
 
-def _load_dataset_with_real_folder(data_dir: Path, image_kind: str) -> list[tuple[str, Path, dict]]:
-    """Load dataset supporting real/ folder for real images.
-
-    Supports both:
-    - New structure: data/real/, data/images/, data/labels/
-    - Old structure: data/images/, data/labels/
-    """
-    data_dir = Path(data_dir)
-    labels_dir = data_dir / "labels" if (data_dir / "labels").is_dir() else data_dir
-    images_dir = data_dir / "images" if (data_dir / "images").is_dir() else data_dir
-    real_dir = data_dir / "real" if (data_dir / "real").is_dir() else None
-
-    scenes = []
-    for label_path in sorted(labels_dir.glob("*.json")):
-        stem = label_path.stem
-        if stem.endswith("_label"):
-            stem = stem[: -len("_label")]
-
-        # Load real images (prioritize real/ folder if it exists)
-        if image_kind in ("real", "both"):
-            if real_dir:
-                image_path = real_dir / f"{stem}.jpg"
-            else:
-                image_path = images_dir / f"{stem}.jpg"
-            if image_path.exists():
-                scenes.append((stem, image_path, json.loads(label_path.read_text())))
-
-        # Load synthetic images
-        if image_kind in ("synthetic", "both"):
-            image_path = images_dir / f"{stem}_sim.png"
-            if image_path.exists():
-                scenes.append((f"{stem}_sim", image_path, json.loads(label_path.read_text())))
-
-    if not scenes:
-        raise FileNotFoundError(
-            f"No matching images and labels found in {data_dir}. Expected "
-            "real images in real/ or images/, synthetic in images/ (as *_sim.png), "
-            "and labels in labels/ (as *.json)."
-        )
-    return scenes
-
-
 class DataLoader(ABC):
     """Abstract base class for loading scene data."""
 
@@ -84,16 +42,14 @@ class DataLoader(ABC):
 
 
 class TrackBDataLoader(DataLoader):
-    """Load Track B dataset with images and labels.
+    """Load Track B scenes: real/<stem>_real.jpg, images/<stem>_sim.png, labels/<stem>.json.
 
-    Supports both directory structures:
-    - New: data/real/ (real images), data/images/ (synthetic), data/labels/
-    - Old: data/images/ (all images), data/labels/
+    See load_dataset in track_b_evaluator.py for the accepted file names.
     """
 
     def load(self, data_dir: Path, image_kind: str) -> list[tuple[str, Path, dict]]:
-        """Load dataset with support for real/ folder and legacy structure."""
-        return _load_dataset_with_real_folder(Path(data_dir), image_kind)
+        """Return (scene id, image path, label) tuples."""
+        return load_dataset(Path(data_dir), image_kind)
 
 
 class ISUSystem(ABC):

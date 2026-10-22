@@ -194,8 +194,8 @@ def _empty_paired_metrics(first_dir, second_dir, first_name, second_name):
 def evaluate_public_realism(folders):
     """Realism metrics against the real reference images.
 
-    Only the first 60 scenes (sample_00000 to sample_00059) have a real
-    reference image (reference/<stem>_real.jpg), so every metric here, including
+    Only the scenes with a real photo have a reference image (reference/<stem>_real.jpg;
+    in the dataset sample_00000 to sample_00029), so every metric here, including
     FID/KID/IS, is computed on those scenes only.
     """
     generated_files = files_by_stem(folders["generated"])
@@ -290,11 +290,11 @@ def parse_object(answer):
 
 
 def evaluate_failure_rate(folders, analyzer):
-    """Failure detection on the scenes without a real reference image.
+    """Failure detection on the scenes with a real reference image.
 
-    The system under test answers the feature questions for each generated image. A feature
-    fails when its answer differs from the scene label, and a scene fails when any of its
-    features fails. Scenes with a real reference image are used for the realism metrics.
+    The system under test answers the feature questions for the real photo and for the generated
+    image of the same scene. A feature fails when the two answers differ, and a scene fails when
+    any of its features fails. The same scenes are used for the realism metrics.
     """
     labels = load_labels(folders["labels"])
     vocabulary = {}
@@ -303,29 +303,51 @@ def evaluate_failure_rate(folders, analyzer):
             vocabulary.setdefault(key, set()).add(_normalize(value))
     prompt = moondream_feature_prompt(vocabulary)
     images = files_by_stem(folders["generated"])
+    # Only the scenes with a real reference image can be compared.
     references = files_by_stem(folders["reference"], normalize_real=True)
-    stems = sorted((set(labels) & set(images)) - set(references))
+    stems = sorted(set(labels) & set(images) & set(references))
 
     # Debug output for empty stems
     if not stems:
-        print(f"  WARNING: No generated scenes without a real reference image found for failure detection")
+        print(f"  WARNING: No generated scenes with a real reference image found for failure detection")
         print(f"    Labels stems ({len(labels)}): {sorted(labels.keys())}", flush=True)
         print(f"    Generated stems ({len(images)}): {sorted(images.keys())}", flush=True)
         print(f"    Reference stems ({len(references)}): {sorted(references.keys())}", flush=True)
     rows = []
     analyzer_name = getattr(analyzer, '__class__', type(analyzer)).__name__
     for index, stem in enumerate(stems, 1):
-        print(f"  {analyzer_name} generated-vs-label matching: {index}/{len(stems)} - {stem}", flush=True)
+        print(f"  {analyzer_name} generated-vs-real matching: {index}/{len(stems)} - {stem}", flush=True)
         started = time.perf_counter()
+        real_image = Image.open(references[stem]).convert("RGB")
         generated_image = Image.open(images[stem]).convert("RGB")
-        prediction, answers = analyzer.classify_features(generated_image, vocabulary)
-        expected = {key: _normalize(value) for key, value in sorted(public_features(labels[stem]).items())}
-        matches = {key: _normalize(prediction.get(key)) == value for key, value in expected.items()}
+        real_prediction, real_answers = analyzer.classify_features(real_image, vocabulary)
+        identical_inputs = (
+            real_image.size == generated_image.size
+            and np.array_equal(np.asarray(real_image), np.asarray(generated_image))
+        )
+        # Identical pixels must have identical semantic measurements. Avoid a
+        # second stochastic VLM call changing the score for the same image.
+        if identical_inputs:
+            generated_prediction = dict(real_prediction)
+            generated_answers = dict(real_answers)
+        else:
+            generated_prediction, generated_answers = analyzer.classify_features(
+                generated_image, vocabulary
+            )
+        keys = sorted(public_features(labels[stem]))
+        matches = {
+            key: _normalize(generated_prediction.get(key)) == _normalize(real_prediction.get(key))
+            for key in keys
+        }
         rows.append({"image": stem, "failure": not all(matches.values()),
-                     "comparison": "generated_vs_label",
-                     "expected": expected, "prediction": prediction,
+                     "comparison": "generated_vs_real",
+                     "identical_inputs": identical_inputs,
+                     "expected": real_prediction, "prediction": generated_prediction,
+                     "real_prediction": real_prediction,
+                     "generated_prediction": generated_prediction,
                      "feature_matches": matches,
-                     "raw_generated_answers": answers,
+                     "raw_real_answers": real_answers,
+                     "raw_generated_answers": generated_answers,
                      "inference_seconds": time.perf_counter() - started})
     failures = sum(row["failure"] for row in rows)
     feature_matches = [match for row in rows for match in row["feature_matches"].values()]
@@ -334,7 +356,7 @@ def evaluate_failure_rate(folders, analyzer):
             "feature_failure_rate": (sum(not match for match in feature_matches) / len(feature_matches)
                                      if feature_matches else None),
             "prompt": prompt,
-            "inference": {"model": "vikhyatk/moondream2",
+            "inference": {"model": getattr(analyzer, "model_name", "vikhyatk/moondream2"),
                           "revision": analyzer.revision,
                           "seed": analyzer.seed,
                           "settings": analyzer.DETERMINISTIC_SETTINGS},
@@ -433,3 +455,91 @@ def tie_break_scores(rows, weights=None):
         name: float(sum(weights[key] * values[key] for key in weights))
         for name, values in normalized.items()
     }
+
+
+# Track A ranking (README "Track A Metrics"); isu-challenge.github.io applies the same rule to the
+# leaderboard. Realism is relative: every generated-vs-real metric is min-max normalized across the
+# ranked contestants, reversed when lower is better, and averaged.
+REALISM_DIRECTIONS = {
+    "exact_match": "higher",
+    "correlation_coefficient": "higher",
+    "histogram_intersection": "higher",
+    "lbp_histogram_similarity": "higher",
+    "psnr": "higher",
+    "ssim": "higher",
+    "normalized_mutual_information": "higher",
+    "fractal_dimension_similarity": "higher",
+    "cosine_similarity": "higher",
+    "inception_score_mean": "higher",
+    "kl_divergence": "lower",
+    "mse": "lower",
+    "classifier_perceptual_loss": "lower",
+    "vgg_perceptual_distance": "lower",
+    "glcm_texture_distance": "lower",
+    "texture_similarity": "lower",
+    "wasserstein_distance": "lower",
+    "fid": "lower",
+    "kid_mean": "lower",
+}
+RANKING_OBJECTIVES = {"failure": "max", "realism": "max", "diversity": "max", "efficiency": "min"}
+TIE_BREAK_WEIGHTS = {"failure": 0.3, "realism": 0.4, "diversity": 0.3}
+
+
+def _finite_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+
+
+def realism_components(report):
+    """The generated-vs-real realism metrics of one report (paired summary and distribution)."""
+    realism = (report.get("final") or {}).get("realism", {}).get("generated_vs_real", {})
+    metrics = {}
+    for source in (realism.get("summary", {}), realism.get("distribution", {})):
+        for metric, value in source.items():
+            if metric.endswith("_std") or metric in {"real_images", "generated_images"}:
+                continue
+            if _finite_number(value):
+                metrics[metric] = float(value)
+    return metrics
+
+
+def overall_realism(components_by_contestant):
+    """Mean of the min-max normalized realism metrics of each contestant, across all contestants."""
+    normalized = {name: {} for name in components_by_contestant}
+    for metric in sorted({metric for values in components_by_contestant.values() for metric in values}):
+        available = {name: values[metric] for name, values in components_by_contestant.items() if metric in values}
+        low, high = min(available.values()), max(available.values())
+        for name, value in available.items():
+            if high == low:
+                score = 0.5
+            else:
+                score = (value - low) / (high - low)
+                if REALISM_DIRECTIONS.get(metric, "higher") == "lower":
+                    score = 1.0 - score
+            normalized[name][metric] = score
+    return {name: sum(values.values()) / len(values) if values else None for name, values in normalized.items()}
+
+
+def rank_contestants(reports):
+    """Rank Track A reports ({contestant: report}) as the leaderboard does.
+
+    Objectives: scene failure rate, overall realism, feature diversity (higher is better) and
+    seconds per scene (lower is better). A contestant is ranked only when all four are available.
+    Within a Pareto front, teams are ordered by the tie-break score.
+    """
+    realism = overall_realism({name: realism_components(report) for name, report in reports.items()})
+    rows = []
+    for name, report in reports.items():
+        final = report.get("final") or {}
+        rows.append({
+            "contestant": name,
+            "failure": (final.get("failure") or {}).get("failure_rate"),
+            "realism": realism[name],
+            "diversity": (final.get("feature_diversity") or {}).get("mean_pairwise_hamming"),
+            "efficiency": (report.get("efficiency") or {}).get("seconds_per_scene"),
+        })
+    rankable = [row for row in rows if all(row[key] is not None for key in RANKING_OBJECTIVES)]
+    fronts = pareto_front(rankable, RANKING_OBJECTIVES) if rankable else []
+    scores = tie_break_scores(rankable, TIE_BREAK_WEIGHTS) if rankable else {}
+    order = [name for front in fronts for name in sorted(front, key=lambda name: -scores[name])]
+    return {"rows": rows, "pareto_fronts": fronts, "tie_break_scores": scores, "order": order,
+            "objectives": RANKING_OBJECTIVES, "tie_break_weights": TIE_BREAK_WEIGHTS}

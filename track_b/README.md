@@ -28,6 +28,9 @@ To get familiar with the task, run the two notebooks in this order:
    prediction file in `submissions/` against the label files and writes the
    reports to `track_b_evaluation_output/`.
 
+The prediction file is for local development only; the official submission is
+your system as code (see [Official Submission](#official-submission)).
+
 ## Evaluate a System
 
 From the `track_b` directory:
@@ -51,28 +54,34 @@ Options:
 
 The report contains the evaluated feature vocabulary, per-scene predictions,
 feature matches, scene exact-match accuracy, aggregate feature accuracy, and
-inference latency. Features containing `env` or `light` in their name are
-excluded from scoring.
+inference latency. Only the Track B features are scored (`TRACK_B_FEATURES` in
+`track_b_evaluator.py`, see the [feature schema](https://isu-challenge.github.io/feature-schema.html)),
+and a feature whose label value is `null` (seat or object not present) is skipped.
 
 ## Dataset Structure
 
 ```
 data/
 ├── images/                 Synthetic RGB images, named `<stem>_sim.png`
-├── real/                   Real RGB images, named `<stem>.jpg` when available
-├── labels/                 Scene labels, named `<stem>_label.json`
-├── depth/                  Depth channels, when available
-│   ├── png/                PNG maps, named `<stem>_sim_depth.png`
-│   └── exr/                EXR maps, named `<stem>_sim_depth.exr`
+├── real/                   Real photos, named `<stem>_real.jpg` (sample_00000 to sample_00029)
+├── labels/                 Scene labels, named `<stem>.json`
+├── depth/                  Depth channels
+│   ├── png/                PNG maps, named `<stem>_depth.png`
+│   └── exr/                EXR maps, named `<stem>_depth.exr`
 ├── canny/                  Canny edge maps, named `<stem>_canny.png`
 └── instance_seg/           Instance maps, named `<stem>_instance_seg.png`
 ```
+
+A real photo shares the label of its scene. The evaluator loads it as scene
+`<stem>` and the synthetic render as scene `<stem>_sim`; `--image-kind` selects
+`real`, `synthetic`, or `both`. `real/<stem>.jpg` and `labels/<stem>_label.json`
+are accepted as well.
 
 Depth, Canny, and instance-segmentation files are auxiliary channels for the
 same simulated camera view. They may be used as additional input by a custom
 system, while the built-in evaluator systems receive only the RGB image. The
 instance-segmentation color mapping is defined in
-`instance_seg/instance_seg_legend.json` when provided.
+`instance_seg/instance_seg_class_map.json`.
 
 ## Evaluation Order
 
@@ -118,9 +127,11 @@ supported for a functional smoke test but is considerably slower.
 
 ## Official Submission
 
-The official evaluation runs your system in a Docker image that you define, on a withheld
-set of real and synthetic images. Prepare it in a folder of its own, for example
-`submissions/<team_name>/` in this directory (ignored by Git);
+The official evaluation runs your system in a Docker image that you define, on 30 withheld real
+photos (`sample_00030` to `sample_00059`) and 500 synthetic scenes withheld from the published
+datasets.
+Prepare it in a folder of its own, for example `submissions/<team_name>/` in this directory
+(ignored by Git);
 [`sample_submission/track_b/`](../sample_submission/track_b/) is a template:
 
 ```text

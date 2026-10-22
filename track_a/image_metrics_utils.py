@@ -304,7 +304,7 @@ def files_by_stem(folder, normalize_simulated=False, normalize_real=False):
         stem = path.stem
         if normalize_simulated and stem.endswith("_sim"):
             stem = stem[:-len("_sim")]
-        # Real reference images are named <stem>_real.jpg, e.g. sample_00059_real.jpg.
+        # Real reference images are named <stem>_real.jpg, e.g. sample_00029_real.jpg.
         if normalize_real and stem.endswith("_real"):
             stem = stem[:-len("_real")]
         if stem in result:
