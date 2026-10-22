@@ -27,8 +27,9 @@ evaluators, and posts the result on the pull request and on the
 flowchart LR
   A["Your submission folder<br/>translator.py or system.py<br/>+ Dockerfile"] --> B["tools/encrypt_submission.py<br/>submission.tar.age.NNN"]
   B --> C["Pull request<br/>submissions/team-id/track_x/"]
-  C --> D["Evaluation runner<br/>checks, decrypts,<br/>builds your image"]
-  D --> E["Your code runs<br/>GPU, no network"]
+  C --> D["Evaluation runner<br/>decrypts, checks,<br/>builds your image"]
+  D --> P["Preflight on a<br/>public scene"]
+  P --> E["Your code runs on the<br/>evaluation data<br/>GPU, no network"]
   E --> F["Starter-kit evaluator<br/>scores the output"]
   F --> G["Comment on the<br/>pull request"]
   F --> H["Leaderboard"]
@@ -68,6 +69,7 @@ way (training, validation, tuning, lookup); this is checked in the manual review
 
 ```mermaid
 flowchart TB
+  F["0. Preflight: translate the public<br/>scene sample_00000"] --> G
   S["30 withheld paired scenes<br/>simulated image, label, Canny,<br/>segmentation, depth"] --> G["1. Generate (your image, GPU, no network)<br/>translate_cli.py calls translate(image, auxiliary_data)<br/>once per scene; the runner times the whole step"]
   G --> V["2. Validate<br/>one readable image per scene, same size,<br/>no copy of a real photo"]
   V --> E["3. Score (evaluator image, no network)<br/>evaluator_cli.py with the real photos"]
@@ -76,6 +78,7 @@ flowchart TB
   E --> M["SAM structure, realism metrics, failure rate,<br/>diversity, generation time"]
 ```
 
+0. **Preflight.** The same command first translates the public scene `sample_00000` (section 5.1).
 1. **Generate.** Your image runs [`track_a/translate_cli.py`](track_a/translate_cli.py) from the
    pinned starter kit: it calls `create_translator("cuda")` once and then
    `translate(image, auxiliary_data)` for every scene. `auxiliary_data` holds the scene `stem`, its
@@ -143,6 +146,7 @@ Each team's best submission is ranked against the best submissions of the other 
 
 ```mermaid
 flowchart TB
+  F["0. Preflight: predict the public<br/>scene sample_00000"] --> Q
   L["Labels (scoring only)"] --> P["1. Prepare (evaluator image)<br/>scene list and prompt with the<br/>questions and answer options"]
   P --> Q["2. Predict (your image, GPU, no network)<br/>create_system, set_prompt, predict(image)"]
   I["30 withheld real photos +<br/>500 withheld synthetic images"] --> Q
@@ -152,6 +156,8 @@ flowchart TB
   C --> O["feature accuracy, scene exact match,<br/>real and synthetic accuracy, latency"]
 ```
 
+0. **Preflight.** Your system first predicts the real photo and the simulated image of the public
+   scene `sample_00000` (section 5.1).
 1. **Prepare.** The scene list and the prompt are built from the labels with `build_vocabulary` and
    `build_prompt` ([`track_b/track_b_evaluator.py`](track_b/track_b_evaluator.py)). The prompt lists
    every scored feature with the answer options that occur in the evaluation labels.
@@ -198,6 +204,20 @@ A pull request is rejected when its author is not a registered team member, when
 files, when the submission is not encrypted with `tools/encrypt_submission.py`, or when the image
 does not build. The comment states the reason; build and run logs stay with the organizers and are
 shared on request.
+
+### 5.1 Checks before your code sees the evaluation data
+
+| Stage | Check | On failure |
+|---|---|---|
+| Before the build | Every Python file parses; `system.py` defines `create_system` / `translator.py` defines `create_translator` at module level. Your code is parsed, not run. | rejected, with file and line |
+| Before the build | The `Dockerfile` has no `# syntax=` directive, no `VOLUME`, does not set `LD_PRELOAD` or `LD_AUDIT`, and uses no `RUN --security`, `RUN --network`, or `RUN --mount=type=ssh` or `type=secret`. | rejected, with the line |
+| During the build | The build may not fill the runner's disk. | rejected |
+| After the build | The image declares no volumes and does not set `LD_PRELOAD` or `LD_AUDIT`. | rejected |
+| Preflight | Your code runs on the public scene `sample_00000` without the evaluation data: Track A must produce one image, Track B must answer at least one scored feature without raising. | rejected, with the exception message |
+| Every step | At most 2 GB of output. | stopped and rejected |
+
+Errors during the evaluation itself are not shown on the pull request, because their messages could
+contain evaluation data. All submissions are also reviewed manually.
 
 ## 6. Leaderboard and final evaluation
 

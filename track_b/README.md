@@ -174,6 +174,20 @@ Your submission folder is the build context of your `Dockerfile`:
   limit can be downloaded during the build as well.
 - The build has internet access, must finish within 30 minutes, and the image may be at
   most 40 GB, including the base image.
+- Not allowed, because they reach past the sandbox of the evaluation: a `# syntax=` directive
+  (custom build frontend), `VOLUME`, setting `LD_PRELOAD` or `LD_AUDIT`, and
+  `RUN --security`, `RUN --network`, or `RUN --mount=type=ssh|secret`.
+
+### Checks before the evaluation
+
+Before your image is built, the Python files of your folder are parsed (not run): a syntax
+error, or an entry point that is not defined at module level (`create_system` in `system.py`,
+`create_translator` in `translator.py`), rejects the submission with the file and line.
+After the build, your code first runs on the public scene `sample_00000`, without the
+evaluation data. If it raises there, or answers none of the scored features, the submission
+is rejected and the pull request shows the exception, for example
+`ModuleNotFoundError: No module named 'timm'`. Errors during the evaluation itself are not
+shown, because they could reveal evaluation data; the organizers share the log on request.
 
 ### Runtime
 
@@ -184,7 +198,8 @@ Your system runs in your image with:
 - an unprivileged user and a read-only file system except `/tmp`, so files in the image
   must be readable by all users;
 - your submission folder mounted read-only at `/submission`, the working directory;
-- the evaluation's own command: the `ENTRYPOINT` and `CMD` of your image are ignored.
+- the evaluation's own command: the `ENTRYPOINT` and `CMD` of your image are ignored;
+- at most 2 GB of output; a step that writes more is stopped.
 
 Latency is measured again on the predefined `g6e.2xlarge` instance for the final evaluation.
 
