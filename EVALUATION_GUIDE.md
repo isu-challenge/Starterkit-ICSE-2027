@@ -46,15 +46,15 @@ The organizers reconstructed 60 real in-car scenes in simulation. They are split
 | Paired scenes | Status | Use |
 |---|---|---|
 | `sample_00000` to `sample_00029` | published in the base dataset (simulated image, label, auxiliary channels, real photo) | development: the only real photos you may use |
-| `sample_00030` to `sample_00059` | withheld | evaluation of both tracks |
+| `sample_00030` to `sample_00059` | withheld | evaluation of both tracks, together with additional unpublished images |
 
 Earlier versions of the base dataset contained the withheld half. Do not use those files in any
 way (training, validation, tuning, lookup); this is checked in the manual review.
 
 | | Your code receives | Used only for scoring | Scenes |
 |---|---|---|---|
-| Track A | simulated image, full label, Canny, instance segmentation, and depth of each scene | real photo of each scene | the 30 withheld paired scenes |
-| Track B | RGB images, plus the questions and answer options (`set_prompt`) | labels | the 30 withheld real photos and 500 withheld synthetic scenes |
+| Track A | simulated image, full label, Canny, instance segmentation, and depth of each scene | real photo of each scene | the 30 withheld paired scenes and additional unpublished images |
+| Track B | RGB images, plus the questions and answer options (`set_prompt`) | labels | the 30 withheld real photos, 500 withheld synthetic scenes, and additional unpublished images |
 
 - The 500 withheld synthetic scenes were rendered for the evaluation with the same generator, scene,
   and feature configuration as the published synthetic scenes. They are named `eval_XXXXX` and are
@@ -70,7 +70,7 @@ way (training, validation, tuning, lookup); this is checked in the manual review
 ```mermaid
 flowchart TB
   F["0. Preflight: translate the public<br/>scene sample_00000"] --> G
-  S["30 withheld paired scenes<br/>simulated image, label, Canny,<br/>segmentation, depth"] --> G["1. Generate (your image, GPU, no network)<br/>translate_cli.py calls translate(image, auxiliary_data)<br/>once per scene; the runner times the whole step"]
+  S["30 withheld paired scenes<br/>+ additional unpublished images<br/>simulated image, label, Canny,<br/>segmentation, depth"] --> G["1. Generate (your image, GPU, no network)<br/>translate_cli.py calls translate(image, auxiliary_data)<br/>once per scene; the runner times the whole step"]
   G --> V["2. Validate<br/>one readable image per scene, same size,<br/>no copy of a real photo"]
   V --> E["3. Score (evaluator image, no network)<br/>evaluator_cli.py with the real photos"]
   R["Real photos<br/>(scoring only)"] --> V
@@ -149,7 +149,7 @@ flowchart TB
   F["0. Preflight: predict the public<br/>scene sample_00000"] --> Q
   L["Labels (scoring only)"] --> P["1. Prepare (evaluator image)<br/>scene list and prompt with the<br/>questions and answer options"]
   P --> Q["2. Predict (your image, GPU, no network)<br/>create_system, set_prompt, predict(image)"]
-  I["30 withheld real photos +<br/>500 withheld synthetic images"] --> Q
+  I["30 withheld real photos +<br/>500 withheld synthetic images +<br/>additional unpublished images"] --> Q
   Q --> J["predictions.json"]
   J --> C["3. Score (evaluator image)"]
   L --> C
@@ -174,8 +174,8 @@ flowchart TB
 | Feature accuracy | Correct features divided by evaluated features over all scenes. | yes |
 | Accuracy real / synthetic | Feature accuracy on the real photos and on the synthetic scenes. | no, reported |
 | Scene exact match | Share of scenes with every evaluated feature correct. | no, reported |
-| Latency (leaderboard) | Wall-clock time of the predict step (container start, model loading, all images) divided by the number of images. | no, reported |
-| Latency (per image) | Mean time around each `predict(image)` call, measured inside your process. | no, reported |
+| Latency | Mean time around each `predict(image)` call after the model has been loaded, measured inside your process. | no, reported |
+| Total time per image (leaderboard) | Wall-clock time of the predict step (container start, model loading, all images) divided by the number of images; the whole step must finish within 2 hours. | no, reported |
 
 The scored features are `TRACK_B_FEATURES` in `track_b_evaluator.py` (see the
 [feature schema](https://isu-challenge.github.io/feature-schema.html)); a feature whose label is
@@ -196,7 +196,7 @@ How to prepare, test, encrypt, and open the pull request is described in
 | Evaluations | 3 per team and track within any 24 hours; every started evaluation counts |
 | Submission size | 2,000 MB and 20,000 files before encryption |
 | Docker build | `FROM isu-challenge-base` in the last stage, internet access, 30 minutes, image at most 40 GB |
-| Runtime | NVIDIA GPU with at least 24 GB, 14 GB RAM, 4 CPU cores, no network, 2 hours for all scenes including model loading (Track B: 530 images) |
+| Runtime | NVIDIA GPU with at least 24 GB, 14 GB RAM, 4 CPU cores, no network, 2 hours for all scenes including model loading |
 | File system | read-only except `/tmp` (4 GB); your folder is mounted read-only at `/submission`; unprivileged user |
 | Pull request | changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track |
 
@@ -224,7 +224,7 @@ contain evaluation data. All submissions are also reviewed manually.
 - Every scored evaluation is published with its team, commit, evaluator commit, and hardware. The
   leaderboard runs on an NVIDIA L4 GPU (24 GB). The pull-request comment lists the raw metrics; the
   Track A overall realism and ranking exist only on the leaderboard, where all teams are compared.
-- The final evaluation re-runs the submissions on the same withheld data, with the industrial SUT
+- The final evaluation re-runs the submissions on the withheld data and additional images that are not part of the published datasets, with the industrial SUT
   in Track A, and measures time on a `g6e.2xlarge` instance (NVIDIA L40S). The organizers announce
   before the submission deadline which submission of a team enters the final evaluation.
 

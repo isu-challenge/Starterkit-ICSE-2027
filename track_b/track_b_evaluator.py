@@ -46,17 +46,18 @@ DEFAULT_IGNORED_FEATURES = {
 IGNORED_FEATURE_NAME_PARTS = ("env", "light", "height_m", "weight_kg", "head_angle")
 
 # The Track B features that are prompted for and scored, named exactly as in the
-# dataset label files (see the feature table in participant_starter.ipynb).
+# dataset label files (see https://isu-challenge.github.io/feature-schema.html).
 TRACK_B_FEATURES = (
-	"driver_emotion", "driver_phone", "driver_safety_belt",
-	"passenger_codriver", "passenger_codriver_emotion", "codriver_safety_belt",
-	"passenger_rear_seat_left", "passenger_rear_left_tshirt_color",
+	"driver_gender", "driver_tshirt_color", "driver_emotion", "driver_phone", "driver_safety_belt",
+	"passenger_codriver", "passenger_codriver_gender", "passenger_codriver_tshirt_color",
+	"passenger_codriver_emotion", "codriver_safety_belt",
+	"passenger_rear_seat_left", "passenger_rear_left_gender", "passenger_rear_left_tshirt_color",
 	"passenger_rear_left_emotion", "passenger_rear_left_safety_belt",
-	"passenger_rear_seat_right", "passenger_rear_right_tshirt_color",
-	"passenger_rear_right_safety_belt",
+	"passenger_rear_seat_right", "passenger_rear_right_gender", "passenger_rear_right_tshirt_color",
+	"passenger_rear_right_emotion", "passenger_rear_right_safety_belt",
 	"phone_codriver_seat", "phone_codriver_seat_color",
 	"colabottle_codriver_seat", "colacan_codriver_seat",
-	"suitcase", "suitcase_location", "suitcase_pose",
+	"suitcase", "suitcase_color", "suitcase_location", "suitcase_pose",
 	"baby_seat", "baby_seat_orientation", "baby",
 )
 

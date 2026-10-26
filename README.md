@@ -34,7 +34,7 @@ The starter kit includes synthetic scenes with auxiliary channels such as seg-ma
 | **Base** | 1,030 | Diverse interior scenes: 1,000 simulated scenes and 30 paired scenes with a real photo, Canny edge maps, and depth maps |
 | **Extended** | 5,000 | Larger collection of diverse interior scenes, including simulated scenes, Canny edge maps, and depth maps |
 
-Participants can use both datasets for development. Of the 60 reconstructed scenes with a real photo, only the 30 in the base dataset (`sample_00000` to `sample_00029`) may be used; the other 30 (`sample_00030` to `sample_00059`) are withheld for the evaluation. Earlier versions of the base dataset contained them, so do not use them in any way, for training, validation, or tuning. The evaluation uses these 30 withheld paired scenes and, in Track B, 500 synthetic scenes withheld from the published datasets; see [Evaluation](#-evaluation).
+Participants can use both datasets for development. Of the 60 reconstructed scenes with a real photo, only the 30 in the base dataset (`sample_00000` to `sample_00029`) may be used; the other 30 (`sample_00030` to `sample_00059`) are withheld for the evaluation. The evaluation uses 30 withheld paired scenes, 500 synthetic scenes withheld from the published datasets in Track B, and additional images that are not part of the published datasets; see [Evaluation](#-evaluation).
 
 #### 🤗 Hugging Face
 
@@ -65,7 +65,7 @@ Participants use synthetic base scenes together with ground-truth annotations an
 
 For the generated scenes, the ground-truth annotations of the source scene must remain valid. In particular, appearance transformations must not add, remove, move, or reshape semantically annotated objects, alter their spatial relationships, or otherwise modify the scene structure represented by the ground-truth annotations. For example, a participant may change a person's clothing or appearance, but may not change the person's location, body geometry, or the presence of safety-critical objects such as seat belts.
 
-Transformations that modify the semantic or geometric structure of the scene are not permitted in Track A unless the corresponding ground-truth annotations are generated consistently and submitted with the transformed scene.
+Transformations that modify the semantic or geometric structure of the scene are not permitted in Track A.
 
 **Inputs**: Synthetic base scenes with ground-truth labels and auxiliary channels.
 
@@ -125,12 +125,12 @@ The benchmark describes each scene through a set of observable features. These l
 
 The complete list of relevant features per track is provided here: https://isu-challenge.github.io/feature-schema.html.
 
-Track A and Track B predictions and evaluations use only the feature subsets specified in their respective notebooks: the [Track A participant starter notebook](track_a/participant_starter.ipynb) and the [Track B evaluator notebook](track_b/track_b_evaluator.ipynb).
+Track A and Track B evaluate only their feature subsets: Track A the features kept by `public_features` in [`track_a/track_a_metrics.py`](track_a/track_a_metrics.py), Track B the features marked for Track B in the [feature schema](https://isu-challenge.github.io/feature-schema.html) (`TRACK_B_FEATURES` in [`track_b/track_b_evaluator.py`](track_b/track_b_evaluator.py)). Height, weight, head angles, lighting, and environment are not scored in either track.
 
 
 #### Example Feature Labels
 
-The following synthetic scene demonstrates how the feature labels apply to an image. The table shows only the features predicted for the relevant track; the complete track-specific prediction subsets are defined in the corresponding notebooks. It shows a male driver wearing a white shirt and safety belt, two rear passengers, and several objects on the front-right seat.
+The following synthetic scene demonstrates how the feature labels apply to an image. The table shows a selection of the Track B features; the complete subsets are listed in the [feature schema](https://isu-challenge.github.io/feature-schema.html). It shows a male driver wearing a white shirt and safety belt, two rear passengers, and several objects on the front-right seat.
 
 <img src="readme_assets/sample_0001_sim.png" alt="Example scene with feature labels" width="600">
 
@@ -161,17 +161,17 @@ Both tracks use executable, automated evaluation pipelines.
 - **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
 - **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
 
-Track A is evaluated on the 30 withheld paired scenes (`sample_00030` to `sample_00059`): the translator runs on their simulated images, and realism, failure rate, diversity, and the structural validity of the generated images (SAM) are measured on these scenes. Generated images that reproduce a real photo instead of translating the simulated scene are rejected.
+Track A is evaluated on the 30 withheld paired scenes (`sample_00030` to `sample_00059`) and additional images that are not part of the published datasets: the translator runs on their simulated images, and realism, failure rate, diversity, and the structural validity of the generated images (SAM) are measured on these scenes. Generated images that reproduce a real photo instead of translating the simulated scene are rejected.
 
 Track A results are ranked using Pareto non-dominance sorting across four objectives: scene failure rate, overall realism, feature diversity, and generation time per scene. In case of a tie, a weighted linear combination of min-max normalized values is used (failure 0.3, realism 0.4, diversity 0.3). A team is ranked only when all four objectives are available; the feature failure rate is reported but not ranked. `rank_contestants` in [`track_a/track_a_metrics.py`](track_a/track_a_metrics.py) implements this ranking.
 
 ### 👁️ Track B Metrics
 
 - **Accuracy:** Performance of visual question answering predictions; scene & feature level based.
-- **Latency:** Time required to process a scene and produce its answer. The leaderboard shows the organizers' wall-clock time of the whole prediction run (including model loading) divided by the number of images; the final evaluation measures it on the predefined EC2 instance with an NVIDIA L40S GPU.
-- **Withheld evaluation data:** Submitted systems are evaluated on 30 withheld real photos and 500 withheld synthetic scenes.
+- **Latency:** Mean execution time of `predict(image)` per image after the model has been loaded. The total execution time of the run, including model loading, is reported separately and must remain within the two-hour limit. The leaderboard runs on an NVIDIA L4 GPU (24 GB); the final evaluation measures time on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
+- **Withheld evaluation data:** Submitted systems are evaluated on 30 withheld real photos, 500 withheld synthetic scenes, and additional images that are not part of the published datasets.
 
-Track B participants train and evaluate with synthetic image data and the 30 real photos of the base dataset (`sample_00000` to `sample_00029`). Participants are also invited to collect additional real data. The evaluation uses the 30 withheld real photos (`sample_00030` to `sample_00059`) and 500 synthetic scenes withheld from the published datasets, and reports accuracy for real and synthetic scenes separately. Results are ordered by feature accuracy over all evaluated scenes.
+Track B participants train and evaluate with synthetic image data and the 30 real photos of the base dataset (`sample_00000` to `sample_00029`). Participants are also invited to collect additional real data. The evaluation uses the 30 withheld real photos (`sample_00030` to `sample_00059`), 500 synthetic scenes withheld from the published datasets, and additional images that are not part of the published datasets, and reports accuracy for real and synthetic scenes separately. Results are ordered by feature accuracy over all evaluated scenes.
 
 Participants can use [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) to generate additional controllable synthetic in-car scenes for Track B development and training. Alternatively, they can use the synthetic and real images provided in the starter kit. Generated or provided scenes should use the competition feature definitions and labels so that predictions can be evaluated with the Track B pipeline.
 
@@ -185,7 +185,7 @@ The exact output schemas, executable evaluation commands, and metric implementat
 
 ## 🤝 Participation
 
-To register, send the team or participant name, affiliation, address, and the GitHub usernames of all team members to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. Only pull requests opened by registered GitHub accounts are evaluated. Registration details and deadlines will be announced with the competition launch. Provide ideally a Team name in case you participate as a group.
+To register, send the team or participant name, affiliation, address, and the GitHub usernames of all team members to [lev.sorokin@tum.de](mailto:lev.sorokin@tum.de) with the subject **ISU-Challenge Registration Track A/B**. You can also register with the form on the [competition website](https://isu-challenge.github.io). Only pull requests opened by registered GitHub accounts are evaluated. If you participate as a group, please provide a team name. Deadlines are listed under [Timeline](#️-timeline).
 
 The competition is organized in connection with A* conference ICSE 2027. The top-ranked teams are invited to submit solution papers to the ICSE 2027 Competition Track proceedings. Novel approaches will be invited based on their methodological contribution, even if they do not achieve the highest leaderboard position.
 
@@ -193,10 +193,10 @@ The competition is organized in connection with A* conference ICSE 2027. The top
 
 Submissions are made as pull requests to this repository and are evaluated automatically on the evaluation scenes described under [Evaluation](#-evaluation).
 
-- **Track A:** Generation code (a `Translator`) and a `Dockerfile` for its environment, which the organizers run on the 30 withheld evaluation scenes.
-- **Track B:** Inference code (an `ISUSystem`) and a `Dockerfile` for its environment, including model files, which the organizers run on the withheld real photos and synthetic scenes.
+- **Track A:** Generation code (a `Translator`) and a `Dockerfile` for its environment, which the organizers run on the 30 withheld evaluation scenes and additional images that are not part of the published datasets.
+- **Track B:** Inference code (an `ISUSystem`) and a `Dockerfile` for its environment, including model files, which the organizers run on the withheld real photos, the withheld synthetic scenes, and additional images that are not part of the published datasets.
 
-Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
+Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
 
 ### Submitting via pull request
 
@@ -291,7 +291,49 @@ Realism is assessed using the published metrics from the challenge and additiona
 <details>
 <summary>Can I use LLMs for image generation?</summary>
 
-Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translation systems, or other generative techniques, provided that the resulting scenes are realistic, reproducible, and semantically valid. Any required model or API dependencies must be declared in the submission, and applicable token or compute limits must be respected.
+Yes. Participants may use LLMs, VLMs, diffusion models, image-to-image translation systems, or other generative techniques, provided that the resulting scenes are realistic, reproducible, and semantically valid. The evaluation runs without network access, so external APIs cannot be used: models must be included in the submission or downloaded while the Docker image is built, and the runtime limits apply.
+
+</details>
+
+<details>
+<summary>Can I recolour the driver's shirt if the seat belt stays unchanged?</summary>
+
+Yes. Recolouring clothing, including to a dark colour, is acceptable; clothing colour is not a scored feature in Track A. The seat belt must remain physically present and in its original position. Hiding, removing, or moving the belt is not acceptable.
+
+</details>
+
+<details>
+<summary>Can labels, instance masks, depth maps, and Canny maps be used as generator inputs?</summary>
+
+Yes, they may guide the generation, provided that the labels themselves are not changed. During the official evaluation, the evaluator calls `translate()` for every scene; `auxiliary_data` contains the scene stem, its label, and its Canny, instance-segmentation, and depth images. These inputs are also provided for the withheld scenes.
+
+</details>
+
+<details>
+<summary>Can the real photos be used for training or fitting models?</summary>
+
+Yes, the 30 real photos of the base dataset (`sample_00000` to `sample_00029`). The other 30 are withheld and, together with additional images that are not part of the published datasets, used for evaluation. During inference, the real photo of a scene is not accessible and must not be used.
+
+</details>
+
+<details>
+<summary>How is generation efficiency measured?</summary>
+
+The evaluation runs your translator on the evaluation scenes and measures the wall-clock time of the entire run, including model loading, divided by the number of scenes. Use the latest starter kit: an earlier evaluator version divided the total time by the 60 paired scenes.
+
+</details>
+
+<details>
+<summary>Must generated images be bit-identical across runs or GPUs?</summary>
+
+No. Small numerical differences caused by GPU hardware or half-precision computation are acceptable, provided the generated content stays the same. Fix random seeds to improve reproducibility.
+
+</details>
+
+<details>
+<summary>Are the auxiliary-channel inconsistencies in phone-use scenes known, and are the masks used for scoring?</summary>
+
+Yes, the reported inconsistencies are confirmed. The masks are not used for scoring: the SAM validity check compares the generated image with the simulated RGB render, and the manual review uses the RGB render as well.
 
 </details>
 
@@ -314,7 +356,7 @@ The base dataset provides 30 real in-car photos (`real/<stem>_real.jpg`, `sample
 <details>
 <summary>What does the interior scene understanding model need to predict?</summary>
 
-The model must predict the observable scene features represented in the label JSON files. These include driver phone use, passenger occupancy, safety-belt status, suitcase presence and location, beverage objects, baby-seat configuration, and related cabin features. The required feature names and allowed values are defined by the provided labels and evaluation prompt.
+The model must predict the features marked for Track B in the [feature schema](https://isu-challenge.github.io/feature-schema.html) (`TRACK_B_FEATURES` in [`track_b/track_b_evaluator.py`](track_b/track_b_evaluator.py)). These include passenger occupancy, gender, emotion, t-shirt colour, phone and suitcase colour, driver phone use, safety-belt status, beverage objects, suitcase presence and location, and baby-seat configuration. The feature names and allowed answer options are given in the evaluation prompt.
 
 </details>
 
@@ -335,7 +377,7 @@ The evaluator compares each predicted feature with the corresponding ground-trut
 <details>
 <summary>Which images are used for evaluation?</summary>
 
-Participants use the synthetic and real images of the datasets for development. The evaluation uses 30 withheld real photos and 500 withheld synthetic scenes, so systems should not rely on a single visual domain.
+Participants use the synthetic and real images of the datasets for development. The evaluation uses 30 withheld real photos, 500 withheld synthetic scenes, and additional images that are not part of the published datasets, so systems should not rely on a single visual domain.
 
 </details>
 
@@ -349,7 +391,7 @@ The starter kit includes a baseline using the open-weight `Qwen/Qwen2.5-VL-3B-In
 <details>
 <summary>How is latency measured?</summary>
 
-Latency is the time required to process an image and produce its Track B prediction. For comparable results, final measurements are performed on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
+Mean execution time of `predict(image)` per image after the model has been loaded. The total execution time of the run, including model loading, is reported separately and must remain within the two-hour limit. The leaderboard runs on an NVIDIA L4 GPU (24 GB); for comparable results, final measurements are performed on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
 
 </details>
 
@@ -360,6 +402,57 @@ Yes, but participants must document external datasets, pretrained models, and de
 
 
 
+
+</details>
+
+<details>
+<summary>Which features are scored, and are height, weight, and head angles included?</summary>
+
+The scored features are those marked for Track B in the [feature schema](https://isu-challenge.github.io/feature-schema.html) (`TRACK_B_FEATURES` in [`track_b/track_b_evaluator.py`](track_b/track_b_evaluator.py)); use the latest starter kit. Height, weight, head angles, lighting, and environment are not scored, so no tolerance applies to them.
+
+</details>
+
+<details>
+<summary>How are accuracy, exact match, and latency used in the ranking?</summary>
+
+The leaderboard ranks submissions by feature-level accuracy and reports scene-level exact match and latency alongside it.
+
+</details>
+
+<details>
+<summary>Can systems be trained or fine-tuned on the available real photos and labels?</summary>
+
+Yes, on the published images and labels. The evaluation uses separate data: the 30 withheld real photos, withheld synthetic scenes, and additional images of a similar type that are not part of the published datasets.
+
+</details>
+
+<details>
+<summary>What files must be submitted for Track B?</summary>
+
+`system.py`, containing the system implementation, and a `Dockerfile` that builds on the provided base image `isu-challenge-base`. Model weights may be included in the submission (up to 2 GB) or downloaded while the Docker image is built, which has internet access, for example to download models from Hugging Face. The final image must not exceed 40 GB. The evaluation runs without internet access on a GPU with at least 24 GB of memory. See [Official Submission](track_b/README.md#official-submission).
+
+</details>
+
+## 🤝 Both Tracks
+
+<details>
+<summary>How are submissions made?</summary>
+
+Through an encrypted pull request to this repository; see [Submitting via pull request](#submitting-via-pull-request). Every pull request is evaluated automatically, and the results are posted as a pull-request comment and on the [leaderboard](https://isu-challenge.github.io/#leaderboard). Track A uses the same mechanism, with `translator.py` as the required implementation file.
+
+</details>
+
+<details>
+<summary>What is the submission deadline?</summary>
+
+27 November 2026, Anywhere on Earth (AoE).
+
+</details>
+
+<details>
+<summary>What are the paper submission format and page limit?</summary>
+
+The paper is due on 4 December 2026. The format and page limit are specified in the [ICSE 2027](https://conf.researchr.org/home/icse-2027) competition track call.
 
 </details>
 

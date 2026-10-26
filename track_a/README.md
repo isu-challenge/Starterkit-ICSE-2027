@@ -27,7 +27,10 @@ To get familiar with the task, run the two notebooks in this order:
    diversity, and efficiency) and writes the reports to
    `track_a_evaluation_output/`.
 
-## Submission Structure
+## Local Evaluation Folder
+
+The evaluator scores a folder with generated images. It is for local development only; the
+official submission is your translator as code (see [Official Submission](#official-submission)).
 
 ```text
 submissions/your_team_name/
@@ -85,7 +88,7 @@ Options:
 
 - `--submission-path` (required): completed submission directory.
 - `--output`: report path; defaults to `track_a_evaluation_output/report.json`.
-- `--failure-model`: `moondream` or `qwen`; defaults to `moondream`.
+- `--failure-model`: `moondream` or `qwen`; defaults to `moondream`. The leaderboard uses `qwen`.
 - `--device`: `cpu`, `cuda`, or `mps`; defaults to `cpu`.
 
 The report includes structural validity, realism, failure detection, feature
@@ -99,7 +102,7 @@ selected VLM. Model weights may be downloaded from Hugging Face on first use.
 1. Generate translated images with your `Translator` implementation.
 2. Store the generated images and timing metadata in the submission folders.
 3. Run `evaluator_cli.py` from the `track_a` directory.
-4. Inspect the JSON report before submitting your results.
+4. Inspect the JSON report before submitting your translator.
 
 The evaluator does not generate submission images; it evaluates the files
 already present in your submission. The first run may download model weights.
@@ -123,7 +126,7 @@ requires the model dependencies and may download weights on the first run.
 ## Official Submission
 
 You submit your translator as code, together with a Docker image that it runs in, and the
-official evaluation runs it on the simulated images of the 30 evaluation scenes. Prepare a
+official evaluation runs it on the simulated images of the 30 withheld evaluation scenes and of additional images that are not part of the published datasets. Prepare a
 folder, for example `submissions/<team_name>/` in this directory (ignored by Git);
 [`sample_submission/track_a/`](../sample_submission/track_a/) is a template:
 
@@ -140,7 +143,7 @@ the size and scene content of its input (see Requirements).
 
 The evaluation scenes are 30 withheld scenes with a real photo, `sample_00030` to
 `sample_00059`, reconstructed like the 30 paired scenes of the base dataset (`sample_00000` to
-`sample_00029`, the only ones you may use). All Track A metrics use them: realism compares your generated images with
+`sample_00029`, the only ones you may use), together with additional images that are not part of the published datasets. All Track A metrics use them: realism compares your generated images with
 the real photos; for failure detection, the ISU system answers the feature questions for your
 generated image and for the real photo of the same scene, and a feature fails when the two
 answers differ; SAM structure compares your generated images with the simulated images.

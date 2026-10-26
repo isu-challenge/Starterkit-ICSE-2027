@@ -128,8 +128,8 @@ supported for a functional smoke test but is considerably slower.
 ## Official Submission
 
 The official evaluation runs your system in a Docker image that you define, on 30 withheld real
-photos (`sample_00030` to `sample_00059`) and 500 synthetic scenes withheld from the published
-datasets.
+photos (`sample_00030` to `sample_00059`), 500 synthetic scenes withheld from the published
+datasets, and additional images that are not part of the published datasets.
 Prepare it in a folder of its own, for example `submissions/<team_name>/` in this directory
 (ignored by Git);
 [`sample_submission/track_b/`](../sample_submission/track_b/) is a template:
