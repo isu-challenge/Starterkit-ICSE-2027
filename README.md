@@ -19,6 +19,7 @@ This repository provides code, data, and documentation for both competition trac
 
 ### Documentation
 
+- **[Evaluation Guide](EVALUATION_GUIDE.md)** — How submissions are evaluated: data, metrics, ranking, limits
 - **[Track A README](track_a/README.md)** — Participant guide for in-car scene translation and evaluation
 - **[Track B README](track_b/README.md)** — Participant guide for in-car scene understanding and evaluation
 
@@ -26,18 +27,18 @@ This repository provides code, data, and documentation for both competition trac
 
 The **ISU-Test Interior Scene Dataset** is publicly available on Hugging Face in two versions. 
 
-The starter kit includes synthetic scenes with auxiliary channels such as seg-maps and canny edge maps for Track A generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1], as well as real images for 60 reconstructed scene.
+The starter kit includes synthetic scenes with auxiliary channels such as seg-maps and canny edge maps for Track A generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1], as well as real photos of 30 reconstructed scenes (`sample_00000` to `sample_00029`).
 
 | Version | Scenes | Contents |
 | --- | ---: | --- |
-| **Base** | 1,060 | Diverse interior scenes, including simulated and 60 real scenes, Canny edge maps, and depth maps |
+| **Base** | 1,030 | Diverse interior scenes: 1,000 simulated scenes and 30 paired scenes with a real photo, Canny edge maps, and depth maps |
 | **Extended** | 5,000 | Larger collection of diverse interior scenes, including simulated scenes, Canny edge maps, and depth maps |
 
-Participants can use both datasets for development while only the base dataset plus a hidden testset will be used for evaluation.
+Participants can use both datasets for development. Of the 60 reconstructed scenes with a real photo, only the 30 in the base dataset (`sample_00000` to `sample_00029`) may be used; the other 30 (`sample_00030` to `sample_00059`) are withheld for the evaluation. Earlier versions of the base dataset contained them, so do not use them in any way, for training, validation, or tuning. The evaluation uses these 30 withheld paired scenes and, in Track B, 500 synthetic scenes withheld from the published datasets; see [Evaluation](#-evaluation).
 
 #### 🤗 Hugging Face
 
-* **[Base Dataset](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset)** — 1,060 scenes
+* **[Base Dataset](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset)** — 1,030 scenes
 * **[Extended Dataset](https://huggingface.co/datasets/ISU-Test/isu-challenge-dataset/tree/extended)** — 5,000 scenes
 
 
@@ -68,7 +69,7 @@ Transformations that modify the semantic or geometric structure of the scene are
 
 **Inputs**: Synthetic base scenes with ground-truth labels and auxiliary channels.
 
-**Outputs**: A generated in-car scene dataset, together with the code required to generate the scenes and, where applicable, the corresponding ground-truth annotations.
+**Outputs**: Reproducible generation code (a `Translator` and a `Dockerfile`) that the organizers run to generate the evaluated scenes.
 
 **Track A evaluation:**
 
@@ -80,17 +81,17 @@ python evaluator_cli.py evaluate --submission-path submissions/<team_name> --out
 
 See [`track_a/evaluator_cli.py`](track_a/evaluator_cli.py) for CLI interface. Implementation example in [`track_a/test/example_custom_translator.py`](track_a/test/example_custom_translator.py).
 
-**Additional resources** in [`track_a/`](track_a/): [Track A README](track_a/README.md), [participant starter notebook](track_a/participant_starter.ipynb), [challenge evaluator notebook](track_a/track_a_challenge_evaluator.ipynb), [metrics implementation](track_a/track_a_metrics.py), and [image metrics utilities](track_a/image_metrics_utils.py).
+**Additional resources** in [`track_a/`](track_a/): [Track A README](track_a/README.md), [participant starter notebook](track_a/participant_starter.ipynb), [evaluator notebook](track_a/track_a_evaluator.ipynb), [metrics implementation](track_a/track_a_metrics.py), and [image metrics utilities](track_a/image_metrics_utils.py).
 
 ### 👁️ Track B: Perception Robustness
 
 Track B is for participants who build robust ISU systems. The goal is to answer safety-relevant questions about synthetic and real in-car scenes, including questions about occupants, seat belts, objects, and driver or passenger behavior.
 
-Systems should process visual in-car scenes and return predictions in the prescribed JSON format. The Track B evaluator uses `Qwen/Qwen2.5-VL-3B-Instruct` as its reference model. A starter collection of real in-car images is provided for training and validation, and the final evaluation uses a withheld test set containing both synthetic and real scenes.
+Systems should process visual in-car scenes and return predictions in the prescribed JSON format. The Track B evaluator uses `Qwen/Qwen2.5-VL-3B-Instruct` as its reference model. A starter collection of real in-car images is provided, and the evaluation uses both synthetic and real scenes.
 
 **Inputs:** Varied synthetic and real in-car scenes together with the competition questions.
 
-**Outputs:** A model, model parameters, reproducible inference code, and JSON-formatted visual question-answering predictions.
+**Outputs:** A model with its parameters and reproducible inference code (an `ISUSystem` and a `Dockerfile`) that returns the JSON-formatted visual question-answering predictions for each image.
 
 **Track B evaluation:**
 
@@ -155,22 +156,22 @@ Both tracks use executable, automated evaluation pipelines.
 
 ### 🧪 Track A Metrics
 
-- **Failure rate:** Based on feature matching between the answers of the system under test for the generated image and the scene labels, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
-- **Realism:** Apply default sim2real gap assessment techqniques [2], combined into a realism score: the mean relative improvement of the generated images over their simulated inputs across the realism metrics, each clipped to [-1, 1].
+- **Failure rate:** Based on feature matching between the answers of the system under test for the generated image and its answers for the real photo of the same scene, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
+- **Realism:** Apply default sim2real gap assessment techqniques [2], comparing the generated images with the real photos. For the ranking, every realism metric is min-max normalized across the ranked teams (reversed when lower is better), and a team's overall realism is the mean of its normalized metrics, so realism is relative to the other teams.
 - **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
 - **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
 
-Realism is measured on the withheld scenes with a real reference image, failure rate and diversity on the withheld synthetic scenes without one, and the structural validity of the generated images (SAM) on all scenes.
+Track A is evaluated on the 30 withheld paired scenes (`sample_00030` to `sample_00059`): the translator runs on their simulated images, and realism, failure rate, diversity, and the structural validity of the generated images (SAM) are measured on these scenes. Generated images that reproduce a real photo instead of translating the simulated scene are rejected.
 
-Track A results are ranked using Pareto non-dominance sorting across scene failure rate, feature failure rate, realism score, feature diversity, and generation time. In case of a tie, a weighted linear combination of min-max normalized values is used (failure 0.3, realism 0.4, diversity 0.3).
+Track A results are ranked using Pareto non-dominance sorting across four objectives: scene failure rate, overall realism, feature diversity, and generation time per scene. In case of a tie, a weighted linear combination of min-max normalized values is used (failure 0.3, realism 0.4, diversity 0.3). A team is ranked only when all four objectives are available; the feature failure rate is reported but not ranked. `rank_contestants` in [`track_a/track_a_metrics.py`](track_a/track_a_metrics.py) implements this ranking.
 
 ### 👁️ Track B Metrics
 
 - **Accuracy:** Performance of visual question answering predictions; scene & feature level based.
-- **Latency:** Time required to process a scene and produce its answer, measured on the predefined EC2 instance with an NVIDIA L40S GPU.
-- **Extended evaluation:** Submitted systems are evaluated on an extended real and synthetic dataset.
+- **Latency:** Time required to process a scene and produce its answer. The leaderboard shows the organizers' wall-clock time of the whole prediction run (including model loading) divided by the number of images; the final evaluation measures it on the predefined EC2 instance with an NVIDIA L40S GPU.
+- **Withheld evaluation data:** Submitted systems are evaluated on 30 withheld real photos and 500 withheld synthetic scenes.
 
-Track B participants train and evaluate with synthetic image data and a set of 50 real images. Participants are also invited to collect additional real data. The final evaluation uses withheld real and synthetic scenes.
+Track B participants train and evaluate with synthetic image data and the 30 real photos of the base dataset (`sample_00000` to `sample_00029`). Participants are also invited to collect additional real data. The evaluation uses the 30 withheld real photos (`sample_00030` to `sample_00059`) and 500 synthetic scenes withheld from the published datasets, and reports accuracy for real and synthetic scenes separately. Results are ordered by feature accuracy over all evaluated scenes.
 
 Participants can use [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) to generate additional controllable synthetic in-car scenes for Track B development and training. Alternatively, they can use the synthetic and real images provided in the starter kit. Generated or provided scenes should use the competition feature definitions and labels so that predictions can be evaluated with the Track B pipeline.
 
@@ -178,7 +179,7 @@ Participants can use [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) to 
 
 The baseline for Track A is `Qwen/Qwen2.5-VL-3B-Instruct`, and the final evaluation includes an industrial system to assess generalizability.
 
-The starter kit provides 1,000 synthetically generated images and 50 real in-car images. These data are released under the MIT license. Participants can also collect real data for the features defined by the competition.
+The base dataset provides 1,000 synthetic scenes and 30 paired scenes with a real in-car photo. These data are released under the MIT license. Participants can also collect real data for the features defined by the competition.
 
 The exact output schemas, executable evaluation commands, and metric implementations are available in the starter kit.
 
@@ -190,10 +191,10 @@ The competition is organized in connection with A* conference ICSE 2027. The top
 
 ## 📦 Submission Format
 
-Submissions are made as pull requests to this repository and are evaluated automatically on a withheld test set.
+Submissions are made as pull requests to this repository and are evaluated automatically on the evaluation scenes described under [Evaluation](#-evaluation).
 
-- **Track A:** Generation code (a `Translator`) and a `Dockerfile` for its environment, which the organizers run on withheld scenes.
-- **Track B:** Inference code (an `ISUSystem`) and a `Dockerfile` for its environment, including model files, which the organizers run on withheld scenes.
+- **Track A:** Generation code (a `Translator`) and a `Dockerfile` for its environment, which the organizers run on the 30 withheld evaluation scenes.
+- **Track B:** Inference code (an `ISUSystem`) and a `Dockerfile` for its environment, including model files, which the organizers run on the withheld real photos and synthetic scenes.
 
 Submissions must pass automated integrity and reproducibility checks. Track A outputs must preserve the required semantic and spatial information. Track B code submissions may be required for verification. Information about the submission format is provided in the designated track folders. All submission will be in addition manually reviewed.
 
@@ -207,11 +208,11 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
    python tools/encrypt_submission.py --source track_b/submissions/<team_name> --output submissions/<team_id>/track_b
    ```
 
-   This writes `submission.tar.age.000`, `.001`, … into your team folder. Commit only these files.
+   This writes `submission.tar.age.000`, `.001`, … into your team folder. Commit only these files. Your fork is public as well, so never push your unencrypted code to it, not even in an earlier commit; develop in a private repository.
 4. Open a pull request against `main` that changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track per pull request.
 5. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Every push to the pull request starts a new evaluation; pull requests are not merged.
 
-Each team has a limited number of evaluations per track and day; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption; larger model files can be downloaded while your Docker image is built.
+Each team has 3 evaluations per track within any 24 hours; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption; larger model files can be downloaded while your Docker image is built.
 
 ## 🗓️ Timeline
 
@@ -246,7 +247,7 @@ A valid Track A input is a synthetic in-car scene from the starter kit together 
 <details>
 <summary>What is the system output?</summary>
 
-The output is a generated in-car scene dataset together with the reproducible code used to generate it. Each generated scene must preserve the semantic content and spatial geometry of its source scene such that the provided ground-truth labels remain valid after transformation.
+The output is reproducible generation code, which the organizers run on the evaluation scenes to produce one generated image per scene. Each generated scene must preserve the semantic content and spatial geometry of its source scene such that the provided ground-truth labels remain valid after transformation.
 
 </details>
 
@@ -306,7 +307,7 @@ An interior scene understanding system analyzes images from inside a vehicle and
 <details>
 <summary>Where can I get real data for training?</summary>
 
-The starter kit provides 50 real in-car images together with the relevant labels. The data are provided for training and validation and are released under the MIT license. Participants may also collect additional real data using the instructions and recording script provided with the challenge. Additional synthetic training data can be generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1].
+The base dataset provides 30 real in-car photos (`real/<stem>_real.jpg`, `sample_00000` to `sample_00029`) together with the labels of their scenes. The data are released under the MIT license. Participants may also collect additional real data for the competition features. Additional synthetic training data can be generated with [ISU-Test](https://github.com/ast-fortiss-tum/ISU-Test) [1].
 
 </details>
 
@@ -334,7 +335,7 @@ The evaluator compares each predicted feature with the corresponding ground-trut
 <details>
 <summary>Which images are used for evaluation?</summary>
 
-Participants use the synthetic and real images supplied in the starter kit for development. The final evaluation uses a withheld extended dataset containing both synthetic and real in-car scenes, so systems should not rely on a single visual domain.
+Participants use the synthetic and real images of the datasets for development. The evaluation uses 30 withheld real photos and 500 withheld synthetic scenes, so systems should not rely on a single visual domain.
 
 </details>
 

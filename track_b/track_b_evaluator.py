@@ -9,8 +9,9 @@ Evaluation workflow:
 * 📊 Aggregate feature accuracy, scene exact-match accuracy, and latency.
 * 💾 Save per-image predictions and aggregate metrics as JSON.
 
-The evaluator accepts either a flat data directory or the starter-kit layout
-with ``images/`` and ``labels/`` subdirectories. The participant system is
+The evaluator accepts either a flat data directory or the dataset layout with
+``images/`` (synthetic ``<stem>_sim.png``), ``real/`` (real ``<stem>_real.jpg``),
+and ``labels/`` (``<stem>.json``) subdirectories. The participant system is
 expected to receive only the RGB image; labels are used by the evaluator for
 scoring and must not be passed to the model during inference.
 
@@ -77,7 +78,27 @@ def comparable_features(label, ignored_features):
 	}
 
 
+def find_real_image(data_dir, stem):
+	"""Return the real photo of a scene, or None if it has none.
+
+	The dataset names real photos real/<stem>_real.jpg; real/<stem>.jpg and the older
+	images/<stem>.jpg are accepted as well.
+	"""
+	data_dir = Path(data_dir)
+	images_dir = data_dir / "images" if (data_dir / "images").is_dir() else data_dir
+	for path in (data_dir / "real" / f"{stem}_real.jpg", data_dir / "real" / f"{stem}.jpg",
+				 images_dir / f"{stem}.jpg"):
+		if path.is_file():
+			return path
+	return None
+
+
 def load_dataset(data_dir, image_kind):
+	"""Return (scene id, image path, label) for every labelled image of the requested kind.
+
+	Real photos keep the label stem as scene id (sample_00000), synthetic renders get the
+	_sim suffix (sample_00000_sim).
+	"""
 	data_dir = Path(data_dir)
 	labels_dir = data_dir / "labels" if (data_dir / "labels").is_dir() else data_dir
 	images_dir = data_dir / "images" if (data_dir / "images").is_dir() else data_dir
@@ -87,8 +108,8 @@ def load_dataset(data_dir, image_kind):
 		if stem.endswith("_label"):
 			stem = stem[: -len("_label")]
 		if image_kind in ("real", "both"):
-			image_path = images_dir / f"{stem}.jpg"
-			if image_path.exists():
+			image_path = find_real_image(data_dir, stem)
+			if image_path is not None:
 				scenes.append((stem, image_path, json.loads(label_path.read_text())))
 		if image_kind in ("synthetic", "both"):
 			image_path = images_dir / f"{stem}_sim.png"
@@ -96,8 +117,9 @@ def load_dataset(data_dir, image_kind):
 				scenes.append((f"{stem}_sim", image_path, json.loads(label_path.read_text())))
 	if not scenes:
 		raise FileNotFoundError(
-			f"No matching images and labels found in {data_dir}. Expected "
-			"<stem>.jpg/<stem>.json or <stem>_sim.png/<stem>.json."
+			f"No matching images and labels found in {data_dir}. Expected real photos as "
+			"real/<stem>_real.jpg, synthetic renders as images/<stem>_sim.png, and labels as "
+			"labels/<stem>.json."
 		)
 	return scenes
 
