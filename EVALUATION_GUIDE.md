@@ -70,7 +70,7 @@ way (training, validation, tuning, lookup); this is checked in the manual review
 ```mermaid
 flowchart TB
   F["0. Preflight: translate the public<br/>scene sample_00000"] --> G
-  S["30 withheld paired scenes<br/>+ additional unpublished images<br/>simulated image, label, Canny,<br/>segmentation, depth"] --> G["1. Generate (your image, GPU, no network)<br/>translate_cli.py calls translate(image, auxiliary_data)<br/>once per scene; the runner times the whole step"]
+  S["30 withheld paired scenes<br/>+ additional unpublished images<br/>simulated image, label, Canny,<br/>segmentation, depth"] --> G["1. Generate (your image, GPU, no network)<br/>translate(image, auxiliary_data), one scene at a time,<br/>at most 2 minutes per scene; timed by the runner"]
   G --> V["2. Validate<br/>one readable image per scene, same size,<br/>no copy of a real photo"]
   V --> E["3. Score (evaluator image, no network)<br/>evaluator_cli.py with the real photos"]
   R["Real photos<br/>(scoring only)"] --> V
@@ -78,12 +78,14 @@ flowchart TB
   E --> M["SAM structure, realism metrics, failure rate,<br/>diversity, generation time"]
 ```
 
-0. **Preflight.** The same command first translates the public scene `sample_00000` (section 5.1).
-1. **Generate.** Your image runs [`track_a/translate_cli.py`](track_a/translate_cli.py) from the
-   pinned starter kit: it calls `create_translator("cuda")` once and then
-   `translate(image, auxiliary_data)` for every scene. `auxiliary_data` holds the scene `stem`, its
-   full `label`, and its `canny`, `segmentation`, and `depth` images. The output is saved as
-   `generated/<stem>.png`. If `translate` raises for any scene, the evaluation fails.
+0. **Preflight.** Your translator first translates the public scene `sample_00000` (section 5.1).
+1. **Generate.** Your image calls `create_translator("cuda")` once and then
+   `translate(image, auxiliary_data)` for every scene, as
+   [`track_a/translate_cli.py`](track_a/translate_cli.py) does. `auxiliary_data` holds the scene
+   `stem`, its full `label`, and its `canny`, `segmentation`, and `depth` images. The runner sends
+   one scene at a time and measures each call from outside your container (section 5.2). A scene
+   whose `translate` raises or exceeds the time limit keeps its simulated image (untranslated); the
+   pull-request comment reports the number of untranslated scenes.
 2. **Validate.** The submission is rejected when `generated/` does not hold exactly one readable
    image per scene with the size of its simulated image, or when a generated image reproduces a
    real photo (section 3.4).
@@ -163,8 +165,10 @@ flowchart TB
    every scored feature with the answer options that occur in the evaluation labels.
 2. **Predict.** Your image imports `system.py`, calls `create_system("cuda")` once,
    `set_prompt(prompt)` once if your system defines it, and `predict(image)` for every image (PIL,
-   RGB). An exception counts as an empty answer for that image. Answers are kept when they are
-   scalars (strings are cut to 256 characters, at most 200 keys).
+   RGB). The runner sends one image at a time and measures each call from outside your container
+   (section 5.2). An exception or a call longer than the time limit counts as an empty answer for
+   that image. Answers are kept when they are scalars (strings are cut to 256 characters, at most
+   200 keys).
 3. **Score.** Answers are compared with the labels after `str(value).strip().upper()`.
 
 ### 4.2 Metrics
@@ -174,8 +178,8 @@ flowchart TB
 | Feature accuracy | Correct features divided by evaluated features over all scenes. | yes |
 | Accuracy real / synthetic | Feature accuracy on the real photos and on the synthetic scenes. | no, reported |
 | Scene exact match | Share of scenes with every evaluated feature correct. | no, reported |
-| Latency | Mean time around each `predict(image)` call after the model has been loaded, measured inside your process. | no, reported |
-| Total time per image (leaderboard) | Wall-clock time of the predict step (container start, model loading, all images) divided by the number of images; the whole step must finish within 2 hours. | no, reported |
+| Latency | Mean time of the `predict(image)` calls, measured by the runner from sending an image to receiving its answer; a call that exceeds the limit counts with 30 seconds. | no, reported |
+| Total time per image (leaderboard) | Wall-clock time of the predict step (container starts, model loading, all images) divided by the number of images. | no, reported |
 
 The scored features are `TRACK_B_FEATURES` in `track_b_evaluator.py` (see the
 [feature schema](https://isu-challenge.github.io/feature-schema.html)); a feature whose label is
@@ -196,7 +200,7 @@ How to prepare, test, encrypt, and open the pull request is described in
 | Evaluations | 3 per team and track within any 24 hours; every started evaluation counts |
 | Submission size | 2,000 MB and 20,000 files before encryption |
 | Docker build | `FROM isu-challenge-base` in the last stage, internet access, 30 minutes, image at most 40 GB |
-| Runtime | NVIDIA GPU with at least 24 GB, 14 GB RAM, 4 CPU cores, no network, 2 hours for all scenes including model loading |
+| Runtime | NVIDIA GPU with at least 24 GB, 14 GB RAM, 4 CPU cores, no network; 15 minutes to load the model, then at most 2 minutes per scene (Track A) or 30 seconds per image (Track B), see section 5.2 |
 | File system | read-only except `/tmp` (4 GB); your folder is mounted read-only at `/submission`; unprivileged user |
 | Pull request | changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track |
 
@@ -213,11 +217,29 @@ shared on request.
 | Before the build | The `Dockerfile` has no `# syntax=` directive, no `VOLUME`, does not set `LD_PRELOAD` or `LD_AUDIT`, and uses no `RUN --security`, `RUN --network`, or `RUN --mount=type=ssh` or `type=secret`. | rejected, with the line |
 | During the build | The build may not fill the runner's disk. | rejected |
 | After the build | The image declares no volumes and does not set `LD_PRELOAD` or `LD_AUDIT`. | rejected |
-| Preflight | Your code runs on the public scene `sample_00000` without the evaluation data: Track A must produce one image, Track B must answer at least one scored feature without raising. | rejected, with the exception message |
+| Preflight | Your code runs on the public scene `sample_00000` without the evaluation data: Track A must produce one image, Track B must answer at least one scored feature without raising, both within the time limits of section 5.2. | rejected, with the exception message |
 | Every step | At most 2 GB of output. | stopped and rejected |
 
 Errors during the evaluation itself are not shown on the pull request, because their messages could
 contain evaluation data. All submissions are also reviewed manually.
+
+### 5.2 Time limits
+
+The runner starts your image and sends the scenes one at a time; the next scene arrives only after
+the current one is answered. It measures each call from sending the scene to receiving the answer,
+outside your container, so the limits and times do not depend on code inside your image.
+
+| | Track A | Track B |
+|---|---|---|
+| Loading (`create_translator` / `create_system` and `set_prompt`) | 15 minutes | 15 minutes |
+| Each call (`translate` / `predict`) | 2 minutes | 30 seconds |
+| A call that raises or exceeds the limit | the scene keeps its simulated image | the image counts as unanswered |
+
+After a call exceeds the limit, the container is stopped and started again: your model loads again
+and continues with the next scene. After 3 restarts, the remaining scenes are not run (Track A:
+untranslated; Track B: unanswered). Loading time counts toward the Track A generation time and the
+Track B total time per image, not toward the limit of a call. Your code receives the scenes as PIL
+images; it should not read standard input, and anything it prints goes to the log.
 
 ## 6. Leaderboard and final evaluation
 
@@ -244,6 +266,9 @@ scenes; the official run uses the withheld scenes.
 
 ## 8. Changes since the October 3 starter kit
 
+- **Time limits per scene** replace the 2-hour limit for the whole run: 15 minutes to load the
+  model, then 2 minutes per Track A scene and 30 seconds per Track B image, measured by the runner,
+  which sends one scene at a time (section 5.2). Track B latency is now measured by the runner.
 - **Submissions are code.** Track A submits a `Translator` and Track B an `ISUSystem`, each with a
   `Dockerfile`, as an encrypted pull request. The organizers generate the Track A images and run the
   Track B systems; generation time is measured by the organizers.
