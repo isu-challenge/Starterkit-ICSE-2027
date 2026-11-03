@@ -156,7 +156,8 @@ the rules and is checked in the manual review.
 The rules for the `Dockerfile`, the checks before the evaluation, and the runtime environment
 are the same as for Track B, see [Docker image](../track_b/README.md#docker-image),
 [Checks before the evaluation](../track_b/README.md#checks-before-the-evaluation), and
-[Runtime](../track_b/README.md#runtime). The preflight translates the public scene
+[Runtime](../track_b/README.md#runtime), except that `translate` may take up to 2 minutes per
+scene. The preflight translates the public scene
 `sample_00000` and must produce one image.
 Generation time is measured by the evaluation for the whole run, including model loading.
 

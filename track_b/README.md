@@ -194,7 +194,9 @@ shown, because they could reveal evaluation data; the organizers share the log o
 Your system runs in your image with:
 
 - an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
-- no network access, and 2 hours for all images, including model loading;
+- no network access; 15 minutes to load the model (`create_system` and `set_prompt`), then at
+  most 30 seconds per image, see
+  [Time limits](../EVALUATION_GUIDE.md#52-time-limits);
 - an unprivileged user and a read-only file system except `/tmp`, so files in the image
   must be readable by all users;
 - your submission folder mounted read-only at `/submission`, the working directory;
