@@ -4,8 +4,7 @@ The translator folder contains translator.py with create_translator(device), whi
 Translator (see evaluator_cli.py). For every simulated image, translate(image, auxiliary_data)
 is called; auxiliary_data holds the scene "stem", its "label", and, when available, its
 "canny", "segmentation", and "depth" images. The results are written to
-<output>/generated/<stem>.png and the time of the whole run, including model loading, to
-<output>/generation_times.json.
+<output>/generated/<stem>.png and the time of the whole run, including model loading, to <output>/generation_times.json.
 
 Example, from the repository root:
     python track_a/translate_cli.py --translator-dir track_a/submissions/<team_name> \

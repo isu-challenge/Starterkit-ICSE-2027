@@ -166,11 +166,7 @@ only this time counts.
 
 ### Test your submission locally
 
-From the repository root of an up-to-date starter-kit checkout (your submission folder can live
-elsewhere; set `TEAM` to it), build your image and translate the 30 paired scenes of the base
-dataset (its first 30 scenes) with the restrictions of the official evaluation. Run with
-`--limit 1` first: that is the preflight scene `sample_00000`. Without an NVIDIA GPU, leave out
-`--gpus all` and add `--device cpu`:
+From the repository root of an up-to-date starter-kit checkout (your submission folder can live elsewhere; set `TEAM` to it), build your image and translate the 30 paired scenes of the base dataset (its first 30 scenes) with the restrictions of the official evaluation. Run with `--limit 1` first: that is the preflight scene `sample_00000`. Without an NVIDIA GPU, leave out `--gpus all` and add `--device cpu`:
 
 ```bash
 TEAM=track_a/submissions/<team_name>
@@ -182,12 +178,9 @@ docker run --rm --gpus all --network none --read-only --tmpfs /tmp --user "$(id 
     /starterkit/track_a/translate_cli.py --translator-dir /submission --data-dir /data --output /out --limit 30
 ```
 
-On Windows, Git Bash rewrites the container paths: prefix the command with
-`MSYS_NO_PATHCONV=1` and use `$(pwd -W)` instead of `$PWD`, or use PowerShell with `${PWD}`.
+On Windows, Git Bash rewrites the container paths: prefix the command with `MSYS_NO_PATHCONV=1` and use `$(pwd -W)` instead of `$PWD`, or use PowerShell with `${PWD}`.
 
-This writes `generated/` and `generation_times.json` into your folder; the time includes model
-loading, and the command warns when loading or a scene exceeds the limits. Then evaluate with
-the simulated images, labels, and real photos of the dataset:
+This writes `generated/` and `generation_times.json` into your folder; the time includes model loading, and the command warns when loading or a scene exceeds the limits. Then evaluate with the simulated images, labels, and real photos of the dataset:
 
 ```bash
 cd track_a

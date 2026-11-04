@@ -188,19 +188,14 @@ evaluation data. If it raises there, or answers none of the scored features, the
 is rejected and the pull request shows the exception, for example
 `ModuleNotFoundError: No module named 'timm'`. Errors during the evaluation itself are not
 shown, because they could reveal evaluation data; the organizers share the log on request.
-A submission rejected by these checks, the build, or the preflight does not count toward your
-3 evaluations per day.
+A submission rejected by these checks, the build, or the preflight does not count toward your 3 evaluations per day.
 
 ### Runtime
 
 Your system runs in your image with:
 
 - an NVIDIA GPU with at least 24 GB of memory, 14 GB of RAM, and 4 CPU cores;
-- no network access; 15 minutes to load the model (`create_system` and `set_prompt`), then at
-  most 30 seconds per image (Track A: 2 minutes per scene). Scenes are sent one at a time
-  and timed by the evaluation runner; a call that raises or exceeds the limit leaves the image
-  unanswered (Track A: untranslated) and restarts your container, and after 3 restarts the
-  remaining scenes are skipped;
+- no network access; 15 minutes to load the model (`create_system` and `set_prompt`), then at most 30 seconds per image (Track A: 2 minutes per scene). Scenes are sent one at a time and timed by the evaluation runner; a call that raises or exceeds the limit leaves the image unanswered (Track A: untranslated) and restarts your container, and after 3 restarts the remaining scenes are skipped;
 - an unprivileged user and a read-only file system except `/tmp`, so files in the image
   must be readable by all users;
 - your submission folder mounted read-only at `/submission`, the working directory;
@@ -211,12 +206,7 @@ Latency is measured again on the predefined `g6e.2xlarge` instance for the final
 
 ### Test your submission locally
 
-From the repository root of an up-to-date starter-kit checkout (your submission folder can live
-elsewhere; mount it at `/submission`), build your image and run the evaluator in it with the
-restrictions of the official evaluation. Define `set_prompt(prompt)` even if your system
-ignores the prompt, as this evaluator calls it. Without an NVIDIA GPU, leave out
-`--gpus all` and use `create_system("cpu")`. On Windows, see the note under
-[Track A](../track_a/README.md#test-your-submission-locally):
+From the repository root of an up-to-date starter-kit checkout (your submission folder can live elsewhere; mount it at `/submission`), build your image and run the evaluator in it with the restrictions of the official evaluation. Define `set_prompt(prompt)` even if your system ignores the prompt, as this evaluator calls it. Without an NVIDIA GPU, leave out `--gpus all` and use `create_system("cpu")`. On Windows, see the note under [Track A](../track_a/README.md#test-your-submission-locally):
 
 ```bash
 docker build -t isu-track-b track_b/submissions/<team_name>

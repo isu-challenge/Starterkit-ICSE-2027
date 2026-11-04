@@ -261,30 +261,6 @@ def public_features(label):
     return features
 
 
-# Answer options of the failure prompt, from the feature schema (isu-challenge.github.io/feature-schema.html),
-# so that the prompt does not depend on which labels are in the folder.
-_YES_NO = ("NO", "YES")
-TRACK_A_FEATURE_VALUES = {
-    "driver_phone": _YES_NO,
-    "driver_safety_belt": _YES_NO,
-    "passenger_codriver": _YES_NO,
-    "codriver_safety_belt": _YES_NO,
-    "passenger_rear_seat_left": _YES_NO,
-    "passenger_rear_left_safety_belt": _YES_NO,
-    "passenger_rear_seat_right": _YES_NO,
-    "passenger_rear_right_safety_belt": _YES_NO,
-    "phone_codriver_seat": _YES_NO,
-    "colabottle_codriver_seat": _YES_NO,
-    "colacan_codriver_seat": _YES_NO,
-    "suitcase": _YES_NO,
-    "suitcase_location": ("CO_DRIVER_SEAT", "REAR_SEAT"),
-    "suitcase_pose": ("FLAT", "UPWARDS"),
-    "baby_seat": _YES_NO,
-    "baby_seat_orientation": ("FRONT_FACING", "REAR_FACING"),
-    "baby": ("NO", "UNKNOWN", "YES"),
-}
-
-
 def _normalize(value):
     if value is None:
         return None
@@ -321,11 +297,10 @@ def evaluate_failure_rate(folders, analyzer):
     any of its features fails. The same scenes are used for the realism metrics.
     """
     labels = load_labels(folders["labels"])
-    vocabulary = {key: set(values) for key, values in TRACK_A_FEATURE_VALUES.items()}
+    vocabulary = {}
     for label in labels.values():
         for key, value in public_features(label).items():
-            if key not in TRACK_A_FEATURE_VALUES:
-                vocabulary.setdefault(key, set()).add(_normalize(value))
+            vocabulary.setdefault(key, set()).add(_normalize(value))
     prompt = moondream_feature_prompt(vocabulary)
     images = files_by_stem(folders["generated"])
     # Only the scenes with a real reference image can be compared.
