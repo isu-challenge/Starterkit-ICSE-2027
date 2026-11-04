@@ -261,7 +261,7 @@ def public_features(label):
     return features
 
 
-# Answer options of the failure prompt, from the feature schema (isu-challenge.github.io/feature-schema.html),
+# Answer options of the failure prompt, from the feature schema
 # so that the prompt does not depend on which labels are in the folder.
 _YES_NO = ("NO", "YES")
 TRACK_A_FEATURE_VALUES = {
