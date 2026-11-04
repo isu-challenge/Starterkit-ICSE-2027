@@ -4,7 +4,8 @@ The translator folder contains translator.py with create_translator(device), whi
 Translator (see evaluator_cli.py). For every simulated image, translate(image, auxiliary_data)
 is called; auxiliary_data holds the scene "stem", its "label", and, when available, its
 "canny", "segmentation", and "depth" images. The results are written to
-<output>/generated/<stem>.png and the translation time to <output>/generation_times.json.
+<output>/generated/<stem>.png and the time of the whole run, including model loading, to
+<output>/generation_times.json.
 
 Example, from the repository root:
     python track_a/translate_cli.py --translator-dir track_a/submissions/<team_name> \
@@ -82,8 +83,14 @@ def main() -> None:
     generated = args.output / "generated"
     generated.mkdir(parents=True, exist_ok=True)
 
+    # Timed like the official evaluation: the whole run, including model loading. The evaluation
+    # allows 15 minutes for loading and 2 minutes per scene.
+    run_started = time.perf_counter()
     translator = load_translator(args.translator_dir.resolve(), args.device)
-    total, errors = 0.0, 0
+    loading = time.perf_counter() - run_started
+    if loading > 15 * 60:
+        print(f"WARNING: loading took {loading:.0f} s; the evaluation allows 900 s.", flush=True)
+    errors = 0
     for index, (stem, path) in enumerate(scenes, 1):
         with Image.open(path) as image:
             source = image.convert("RGB")
@@ -91,15 +98,18 @@ def main() -> None:
         started = time.perf_counter()
         try:
             result = translator.translate(source, auxiliary)
-            total += time.perf_counter() - started
             if not isinstance(result, Image.Image):
                 raise TypeError(f"translate() returned {type(result).__name__}, expected a PIL image")
             result.convert("RGB").save(generated / f"{stem}.png")
         except Exception:  # noqa: BLE001 - report every failing scene, then fail
             errors += 1
             traceback.print_exc()
+        seconds = time.perf_counter() - started
+        if seconds > 120:
+            print(f"WARNING: {stem} took {seconds:.0f} s; the evaluation allows 120 s per scene.", flush=True)
         print(f"[{index}/{len(scenes)}] {stem}", flush=True)
 
+    total = time.perf_counter() - run_started
     (args.output / "generation_times.json").write_text(json.dumps(
         {"total_seconds": round(total, 3), "scenes": len(scenes), "hardware": platform.platform()}, indent=2) + "\n",
         encoding="utf-8")

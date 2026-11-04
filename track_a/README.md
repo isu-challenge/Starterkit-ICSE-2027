@@ -90,6 +90,8 @@ Options:
 - `--output`: report path; defaults to `track_a_evaluation_output/report.json`.
 - `--failure-model`: `moondream` or `qwen`; defaults to `moondream`. The leaderboard uses `qwen`.
 - `--device`: `cpu`, `cuda`, or `mps`; defaults to `cpu`.
+- `--data-dir`: the dataset folder (`images/`, `labels/`, `real/`); the submission folder then
+  only needs `generated/` and `generation_times.json`.
 
 The report includes structural validity, realism, failure detection, feature
 diversity, CLIP visual diversity, and generation efficiency metrics.
@@ -159,13 +161,16 @@ are the same as for Track B, see [Docker image](../track_b/README.md#docker-imag
 [Runtime](../track_b/README.md#runtime), except that `translate` may take up to 2 minutes per
 scene. The preflight translates the public scene
 `sample_00000` and must produce one image.
-Generation time is measured by the evaluation for the whole run, including model loading.
+Generation time is measured by the evaluation runner for the whole run, including model loading;
+only this time counts.
 
 ### Test your submission locally
 
-From the repository root, build your image and translate the 30 paired scenes of the base
-dataset (its first 30 scenes) with the restrictions of the official evaluation. Without an
-NVIDIA GPU, leave out `--gpus all` and add `--device cpu`:
+From the repository root of an up-to-date starter-kit checkout (your submission folder can live
+elsewhere; set `TEAM` to it), build your image and translate the 30 paired scenes of the base
+dataset (its first 30 scenes) with the restrictions of the official evaluation. Run with
+`--limit 1` first: that is the preflight scene `sample_00000`. Without an NVIDIA GPU, leave out
+`--gpus all` and add `--device cpu`:
 
 ```bash
 TEAM=track_a/submissions/<team_name>
@@ -177,17 +182,16 @@ docker run --rm --gpus all --network none --read-only --tmpfs /tmp --user "$(id 
     /starterkit/track_a/translate_cli.py --translator-dir /submission --data-dir /data --output /out --limit 30
 ```
 
-This writes `generated/` and `generation_times.json` into your folder. Add the matching
-simulated images, labels, and the real images, then evaluate:
+On Windows, Git Bash rewrites the container paths: prefix the command with
+`MSYS_NO_PATHCONV=1` and use `$(pwd -W)` instead of `$PWD`, or use PowerShell with `${PWD}`.
+
+This writes `generated/` and `generation_times.json` into your folder; the time includes model
+loading, and the command warns when loading or a scene exceeds the limits. Then evaluate with
+the simulated images, labels, and real photos of the dataset:
 
 ```bash
-mkdir -p "$TEAM"/simulated "$TEAM"/labels "$TEAM"/reference && cp data/real/*_real.jpg "$TEAM"/reference/
-for image in "$TEAM"/generated/*.png; do
-    stem=$(basename "$image" .png)
-    cp "data/images/${stem}_sim.png" "$TEAM"/simulated/ && cp "data/labels/${stem}.json" "$TEAM"/labels/
-done
 cd track_a
-python evaluator_cli.py evaluate --submission-path "../$TEAM" --output report.json --failure-model qwen
+python evaluator_cli.py evaluate --submission-path "../$TEAM" --data-dir ../data --output report.json --failure-model qwen
 ```
 
 Then, from the repository root, encrypt the folder and commit the result as described in

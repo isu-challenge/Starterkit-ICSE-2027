@@ -19,7 +19,6 @@ This repository provides code, data, and documentation for both competition trac
 
 ### Documentation
 
-- **[Evaluation Guide](EVALUATION_GUIDE.md)** — How submissions are evaluated: data, metrics, ranking, limits
 - **[Track A README](track_a/README.md)** — Participant guide for in-car scene translation and evaluation
 - **[Track B README](track_b/README.md)** — Participant guide for in-car scene understanding and evaluation
 
@@ -159,7 +158,7 @@ Both tracks use executable, automated evaluation pipelines.
 - **Failure rate:** Based on feature matching between the answers of the system under test for the generated image and its answers for the real photo of the same scene, reported per scene (the number of scenes that expose a failure divided by the number of executed scenes) and per feature (the share of mismatching features). The reference system under test is `Qwen/Qwen2.5-VL-3B-Instruct`. A separate industrial system will be used for the final evaluation.
 - **Realism:** Apply default sim2real gap assessment techqniques [2], comparing the generated images with the real photos. For the ranking, every realism metric is min-max normalized across the ranked teams (reversed when lower is better), and a team's overall realism is the mean of its normalized metrics, so realism is relative to the other teams.
 - **Diversity:** Feature diversity of failing scenes, following ISU-Test. Visual diversity of failing scenes is measured with CLIP; this captures changes such as clothing colour and style.
-- **Efficiency:** Generation time. Is to be measured on the standardized `g6e.2xlarge` EC2 instance in final evaluation.
+- **Efficiency:** Generation time per scene, measured by the evaluation runner for the whole run, including model loading. The final evaluation measures it on the standardized `g6e.2xlarge` EC2 instance.
 
 Track A is evaluated on the 30 withheld paired scenes (`sample_00030` to `sample_00059`) and additional images that are not part of the published datasets: the translator runs on their simulated images, and realism, failure rate, diversity, and the structural validity of the generated images (SAM) are measured on these scenes. Generated images that reproduce a real photo instead of translating the simulated scene are rejected.
 
@@ -168,7 +167,7 @@ Track A results are ranked using Pareto non-dominance sorting across four object
 ### 👁️ Track B Metrics
 
 - **Accuracy:** Performance of visual question answering predictions; scene & feature level based.
-- **Latency:** Mean execution time of `predict(image)` per image after the model has been loaded. The total execution time of the run, including model loading, is reported separately and must remain within the two-hour limit. The leaderboard runs on an NVIDIA L4 GPU (24 GB); the final evaluation measures time on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
+- **Latency:** Mean time per `predict(image)` call after the model has been loaded, measured by the evaluation runner. The leaderboard runs on an NVIDIA L4 GPU (24 GB); the final evaluation measures time on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
 - **Withheld evaluation data:** Submitted systems are evaluated on 30 withheld real photos, 500 withheld synthetic scenes, and additional images that are not part of the published datasets.
 
 Track B participants train and evaluate with synthetic image data and the 30 real photos of the base dataset (`sample_00000` to `sample_00029`). Participants are also invited to collect additional real data. The evaluation uses the 30 withheld real photos (`sample_00030` to `sample_00059`), 500 synthetic scenes withheld from the published datasets, and additional images that are not part of the published datasets, and reports accuracy for real and synthetic scenes separately. Results are ordered by feature accuracy over all evaluated scenes.
@@ -212,7 +211,7 @@ Submissions must pass automated integrity and reproducibility checks. Track A ou
 4. Open a pull request against `main` that changes only `submissions/<team_id>/track_a/` or `submissions/<team_id>/track_b/`, one track per pull request.
 5. The result is posted as a comment on the pull request and published on the [leaderboard](https://isu-challenge.github.io). Every push to the pull request starts a new evaluation; pull requests are not merged.
 
-Each team has 3 evaluations per track within any 24 hours; every evaluation that starts counts, including one cancelled by a newer push. A submission may contain up to 2 GB before encryption; larger model files can be downloaded while your Docker image is built.
+Each team has 3 evaluations per track within any 24 hours. An evaluation counts once your code has passed the preflight on the public scene `sample_00000`; a submission rejected before that (checks, Docker build, or preflight) does not count. A submission may contain up to 2 GB before encryption; larger model files can be downloaded while your Docker image is built.
 
 ## 🗓️ Timeline
 
@@ -391,7 +390,7 @@ The starter kit includes a baseline using the open-weight `Qwen/Qwen2.5-VL-3B-In
 <details>
 <summary>How is latency measured?</summary>
 
-Mean execution time of `predict(image)` per image after the model has been loaded. The total execution time of the run, including model loading, is reported separately and must remain within the two-hour limit. The leaderboard runs on an NVIDIA L4 GPU (24 GB); for comparable results, final measurements are performed on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
+Mean time per `predict(image)` call after the model has been loaded, measured by the evaluation runner; each call may take at most 30 seconds. The leaderboard runs on an NVIDIA L4 GPU (24 GB); for comparable results, final measurements are performed on the predefined `g6e.2xlarge` EC2 instance with an NVIDIA L40S GPU.
 
 </details>
 
