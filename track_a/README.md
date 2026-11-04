@@ -74,8 +74,7 @@ Options:
 - `--output`: report path; defaults to `track_a_evaluation_output/report.json`.
 - `--failure-model`: `moondream` or `qwen`; defaults to `moondream`. The leaderboard uses `qwen`.
 - `--device`: `cpu`, `cuda`, or `mps`; defaults to `cpu`.
-- `--data-dir`: the dataset folder (`images/`, `labels/`, `real/`); the submission folder then
-  only needs `generated/` and `generation_times.json`.
+- `--data-dir`: the dataset folder (`images/`, `labels/`, `real/`); the submission folder then only needs `generated/` and `generation_times.json`.
 
 The report includes structural validity, realism, failure detection, feature diversity, CLIP visual diversity, and generation efficiency metrics.
 
