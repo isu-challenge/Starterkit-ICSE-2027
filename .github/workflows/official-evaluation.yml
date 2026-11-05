@@ -113,7 +113,6 @@ jobs:
               "evaluated_at": text(result.get("evaluated_at"), 40),
               "hardware": text(result.get("hardware"), 80),
               "evaluator_ref": text(result.get("evaluator_ref"), 40),
-              "efficiency_self_reported": bool(result.get("efficiency_self_reported")),
               "metrics": metrics,
           }
 
@@ -190,9 +189,6 @@ jobs:
                   for key, value in metrics.items():
                       shown = "n/a" if value is None else (f"{value:.4g}" if isinstance(value, float) else str(value))
                       lines.append(f"| `{key}` | {shown} |")
-                  if result.get("efficiency_self_reported"):
-                      lines += ["", "Generation time comes from your `generation_times.json` and is "
-                                    "re-measured for the final evaluation."]
                   if result.get("publish") is False:
                       lines += ["", "Organizer test run: not published to the leaderboard."]
                   else:

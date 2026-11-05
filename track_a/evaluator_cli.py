@@ -54,8 +54,18 @@ class DataLoader(ABC):
 class TrackADataLoader(DataLoader):
     """Load Track A submission data with structured folders."""
 
-    def load(self, submission_path: Path) -> dict[str, Path]:
-        """Return paths to required Track A folders."""
+    def load(self, submission_path: Path, data_dir: Optional[Path] = None) -> dict[str, Path]:
+        """Return paths to required Track A folders.
+
+        With data_dir (the dataset: images/, labels/, real/), only generated/ is taken from the submission.
+        """
+        if data_dir is not None:
+            return {
+                "simulated": data_dir / "images",
+                "generated": submission_path / "generated",
+                "reference": data_dir / "real",
+                "labels": data_dir / "labels",
+            }
         return {
             "simulated": submission_path / "simulated",
             "generated": submission_path / "generated",
@@ -180,17 +190,19 @@ class ParticipantEvaluator:
         output_path: Path,
         failure_model: str = "moondream",
         device: str = "cpu",
+        data_dir: Optional[Path] = None,
     ):
         self.submission_path = Path(submission_path)
         self.output_path = Path(output_path)
         self.failure_model = failure_model
         self.device = device
+        self.data_dir = Path(data_dir) if data_dir else None
         self.data_loader = TrackADataLoader()
 
     def evaluate(self) -> dict[str, Any]:
         """Evaluate the submission."""
         # Load and validate submission
-        folders = self.data_loader.load(self.submission_path)
+        folders = self.data_loader.load(self.submission_path, self.data_dir)
         if not self.data_loader.validate(folders):
             raise ValueError(f"Invalid submission structure at {self.submission_path}")
 
@@ -278,6 +290,10 @@ def main():
         default="cpu",
         help="Torch device (cpu, cuda, mps)",
     )
+    eval_parser.add_argument(
+        "--data-dir",
+        help="Dataset folder (images/, labels/, real/); then the submission folder only needs generated/",
+    )
 
     args = parser.parse_args()
 
@@ -291,6 +307,7 @@ def main():
             args.output,
             args.failure_model,
             args.device,
+            args.data_dir,
         )
         evaluator.evaluate()
 
