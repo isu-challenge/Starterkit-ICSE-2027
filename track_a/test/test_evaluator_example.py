@@ -92,6 +92,11 @@ def test_full_pipeline_with_appearance_translator_and_qwen(tmp_path):
     # Failure detection actually queried the Qwen2.5-VL SUT proxy.
     assert report["failure_raw"]["executed"] >= 1
     assert report["final"]["failure"]["executed"] == report["failure_raw"]["executed"]
+    # Failures count only features answered correctly on the real photo.
+    failure = report["failure_raw"]
+    assert failure["testable_scenes"] <= failure["executed"]
+    assert failure["failing_features"] <= failure["testable_features"]
+    assert failure["failures"] <= failure["testable_scenes"]
 
     # Feature diversity and CLIP visual diversity were both computed.
     assert "mean_pairwise_hamming" in report["final"]["feature_diversity"]
