@@ -291,6 +291,13 @@ def _normalize(value):
     return str(value).strip().upper()
 
 
+def _label_value(value):
+    """A label value in the answer vocabulary of the failure prompt (booleans as YES/NO)."""
+    if isinstance(value, bool):
+        return "YES" if value else "NO"
+    return _normalize(value)
+
+
 def moondream_feature_prompt(features):
     schema = {key: list(sorted(values)) for key, values in features.items()}
     return (
@@ -317,8 +324,11 @@ def evaluate_failure_rate(folders, analyzer):
     """Failure detection on the scenes with a real reference image.
 
     The system under test answers the feature questions for the real photo and for the generated
-    image of the same scene. A feature fails when the two answers differ, and a scene fails when
-    any of its features fails. The same scenes are used for the realism metrics.
+    image of the same scene, and both answers are compared with the scene label. A feature is
+    testable when the answer for the real photo is correct, and it fails when the answer for the
+    generated image is then wrong: the generated image caused the error. A scene fails when any of
+    its features fails. Rates are over the testable features and the scenes with at least one
+    testable feature. The same scenes are used for the realism metrics.
     """
     labels = load_labels(folders["labels"])
     vocabulary = {key: set(values) for key, values in TRACK_A_FEATURE_VALUES.items()}
@@ -359,27 +369,41 @@ def evaluate_failure_rate(folders, analyzer):
             generated_prediction, generated_answers = analyzer.classify_features(
                 generated_image, vocabulary
             )
-        keys = sorted(public_features(labels[stem]))
+        truth = {key: _label_value(value) for key, value in public_features(labels[stem]).items()}
+        keys = sorted(truth)
+        real_correct = {key: _normalize(real_prediction.get(key)) == truth[key] for key in keys}
+        generated_correct = {key: _normalize(generated_prediction.get(key)) == truth[key] for key in keys}
+        # Only features the SUT answers correctly on the real photo can show a failure.
+        feature_failures = {key: not generated_correct[key] for key in keys if real_correct[key]}
+        # Agreement of the two answers, kept for analysis; it does not define a failure.
         matches = {
             key: _normalize(generated_prediction.get(key)) == _normalize(real_prediction.get(key))
             for key in keys
         }
-        rows.append({"image": stem, "failure": not all(matches.values()),
-                     "comparison": "generated_vs_real",
+        rows.append({"image": stem, "failure": any(feature_failures.values()),
+                     "comparison": "generated_vs_real_vs_label",
                      "identical_inputs": identical_inputs,
-                     "expected": real_prediction, "prediction": generated_prediction,
+                     "expected": truth, "prediction": generated_prediction,
                      "real_prediction": real_prediction,
                      "generated_prediction": generated_prediction,
+                     "real_correct": real_correct,
+                     "generated_correct": generated_correct,
+                     "feature_failures": feature_failures,
                      "feature_matches": matches,
                      "raw_real_answers": real_answers,
                      "raw_generated_answers": generated_answers,
                      "inference_seconds": time.perf_counter() - started})
     failures = sum(row["failure"] for row in rows)
-    feature_matches = [match for row in rows for match in row["feature_matches"].values()]
-    return {"failure_rate": failures / len(rows) if rows else None, "failures": failures,
+    testable_scenes = sum(bool(row["feature_failures"]) for row in rows)
+    feature_outcomes = [failed for row in rows for failed in row["feature_failures"].values()]
+    return {"failure_rate": failures / testable_scenes if testable_scenes else None,
+            "failures": failures,
             "executed": len(rows),
-            "feature_failure_rate": (sum(not match for match in feature_matches) / len(feature_matches)
-                                     if feature_matches else None),
+            "testable_scenes": testable_scenes,
+            "feature_failure_rate": (sum(feature_outcomes) / len(feature_outcomes)
+                                     if feature_outcomes else None),
+            "failing_features": sum(feature_outcomes),
+            "testable_features": len(feature_outcomes),
             "prompt": prompt,
             "inference": {"model": getattr(analyzer, "model_name", "vikhyatk/moondream2"),
                           "revision": analyzer.revision,
