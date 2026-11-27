@@ -172,6 +172,8 @@ class ReportWriter:
                 "failure_rate": failure.get("failure_rate"),
                 "failures": failure.get("failures"),
                 "executed": failure.get("executed"),
+                "testable_scenes": failure.get("testable_scenes"),
+                "feature_failure_rate": failure.get("feature_failure_rate"),
                 "ssim_generated": final["realism"]["generated_vs_real"]["summary"].get("ssim"),
                 "ssim_simulated": final["realism"]["simulated_vs_real"]["summary"].get("ssim"),
                 "feature_diversity": final["feature_diversity"]["mean_pairwise_hamming"],
@@ -229,7 +231,10 @@ class ParticipantEvaluator:
         )
         failure_rate = report["failure_raw"].get("failure_rate")
         if failure_rate is not None:
-            print(f"  Failure rate: {failure_rate:.3f} ({report['failure_raw']['failures']}/{report['failure_raw']['executed']})")
+            print(f"  Failure rate: {failure_rate:.3f} "
+                  f"({report['failure_raw']['failures']}/{report['failure_raw']['testable_scenes']} testable scenes)")
+        else:
+            print("  Failure rate: N/A (no scene has a feature answered correctly on the real photo)")
         ReportWriter.write(report, self.output_path)
 
         # Diversity
